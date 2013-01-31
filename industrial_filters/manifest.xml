@@ -1,0 +1,24 @@
+<package>
+  <description brief="industrial_filters">
+
+     industrial_filters
+
+  </description>
+  <author>Christina Gomez</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/industrial_filters</url>
+  <depend package="roscpp" />
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
+  <depend package="nodelet"/>
+  <export>
+  	<rosbuild cmake_directory="${prefix}/cmake"/>
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lperceptiontools"/>    
+
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
+  </export>
+
+</package>
+
+
