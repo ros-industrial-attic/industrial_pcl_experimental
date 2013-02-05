@@ -29,11 +29,15 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
-rosbuild_add_library(industrialfilters src/concantenate_mls_nodelet.cpp
-	src/concantenate_mls.cpp)
-	
-#rosbuild_add_executable(concantenate_average src/filters/concantenate_mls.cpp)
-#target_link_libraries(concantenate_average ${PROJECT_NAME})
+rosbuild_add_library(industrialfilters src/concatenate_mls.cpp)
+#target_link_libraries(industrialfilters industrialfilters)
+
+rosbuild_add_library(industrialnodelet src/concatenate_mls_nodelet.cpp)
+#	src/concantenate_mls.cpp)
+target_link_libraries(industrialnodelet industrialfilters)
+
+rosbuild_add_executable(concantenate_average src/nodes/concatenate_mls_test.cpp)
+target_link_libraries(concantenate_average industrialfilters)
 
 # Enable dynamic_reconfigure
 rosbuild_find_ros_package (dynamic_reconfigure)

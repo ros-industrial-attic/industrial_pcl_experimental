@@ -21,7 +21,7 @@
  */
 
 #include <pluginlib/class_list_macros.h>
-#include "concantenate_mls_nodelet.h"
+#include "concatenate_mls_nodelet.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool

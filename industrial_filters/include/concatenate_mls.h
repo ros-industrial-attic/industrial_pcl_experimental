@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * concantenate_mls_nodelet.cpp
  *
  *
  * concantenate_mls.h
@@ -25,6 +24,8 @@
 #define CONCANTENATE_MLS_H_
 
 #include <pcl/filters/filter.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/surface/mls.h>
 
 namespace industrial_filters
 {
@@ -33,8 +34,11 @@ template <typename PointT>
 class ConcantenateMLS : public pcl::Filter<PointT>
   {
   protected:
-    typedef typename pcl::PointCloud<PointT>::PointCloud PointCloud;
-    void applyFilter (PointCloud &output);
+    typedef typename pcl::PointCloud<PointT> PointCloud;
+    typedef typename PointCloud::Ptr PointCloudPtr;
+    typedef typename PointCloud::ConstPtr PointCloudConstPtr;
+    typedef pcl::PointCloud<pcl::PointNormal> NormalCloudOut;
+    typedef typename NormalCloudOut::Ptr NormalCloudOutPtr;
 
   public:
     const std::string& getFilterFieldName() const
@@ -59,18 +63,40 @@ class ConcantenateMLS : public pcl::Filter<PointT>
       filter_limit_min_ = limit_min;
     }
 
-  private:
+    const std::vector<PointCloudConstPtr>& getInputClouds() const
+    {
+      return input_clouds_;
+    }
+
+    void setInputClouds(const std::vector<PointCloudConstPtr>& inputClouds)
+    {
+      input_clouds_ = inputClouds;
+    }
+
+  public:
     ConcantenateMLS();
     ~ConcantenateMLS();
 
   protected:
+    void applyFilter (PointCloud &output);
+
     using pcl::Filter<PointT>::filter_name_;
     using pcl::PCLBase<PointT>::input_;
 
   private:
+    std::vector<PointCloudConstPtr> input_clouds_;
     std::string filter_field_name_;
     float filter_limit_min_;
     float filter_limit_max_;
+    PointCloudConstPtr cloud_;
+    PointCloudPtr concat_cloud_;
+    PointCloudConstPtr temp_cloud_;
+
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree_;
+    pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls_;
+    NormalCloudOut mls_points_;
+    NormalCloudOutPtr normals_;
+    float search_radius_;
   };
 
   template <>

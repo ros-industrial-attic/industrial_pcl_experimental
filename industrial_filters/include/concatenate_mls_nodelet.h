@@ -26,7 +26,7 @@
 #define CONCANTENATE_MLS_NODELET_H_
 
 #include "pcl_ros/filters/filter.h"
-#include "concantenate_mls.h"
+#include "concatenate_mls.h"
 
 namespace industrial_filters_nodelets
 {
@@ -41,7 +41,7 @@ namespace industrial_filters_nodelets
       boost::shared_ptr <dynamic_reconfigure::Server<pcl_ros::FilterConfig> > srv_;
 
       /** \brief Call the actual filter.
-        * \param input the input point cloud dataset
+        * \param input the input point cloud
         * \param indices the input set of indices to use from \a input
         * \param output the resultant filtered dataset
         */
