@@ -35,6 +35,7 @@ int main(int argc, char **argv)
   // Set up ROS.
   ros::init(argc, argv, "concatenate_average");
   ros::NodeHandle n;
+  ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("avg_filtered_cloud", 100);
 
 
   // Declare variables that can be modified by launch file or command line.
@@ -64,26 +65,39 @@ int main(int argc, char **argv)
   {
     sensor_msgs::PointCloud2::ConstPtr recent_cloud =
     ros::topic::waitForMessage<sensor_msgs::PointCloud2>(topic, n, ros::Duration(3.0));
-    input_cloud.at(k)=recent_cloud;
+    input_cloud.push_back(recent_cloud);
   }
   ROS_INFO_STREAM("Input Clouds gathered: "<<input_cloud.size() <<" PointCloud2's");
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud; // (new pcl::PointCloud<pcl::PointXYZ>);
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr > clouds;// (new std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr >);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud  (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::fromROSMsg(*input_cloud.at(0), *cloud);
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr > clouds;// (new std::vector<pcl::PointCloud<pcl::PointXYZ> >);
+/*  clouds.push_back(cloud);*/
   for (int j=0; j<num_images_; j++)
   {
+    //pcl::fromROSMsg(*input_cloud.at(j), cloud);
     pcl::fromROSMsg(*input_cloud.at(j), *cloud);
     clouds.push_back(cloud);
   }
-  ROS_INFO_STREAM("Clouds set as input PintCloud Types: "<<clouds.size() <<" PointClouds");
+  ROS_INFO_STREAM("Clouds set as input: "<<clouds.size() <<" PointClouds");
 
   industrial_filters::ConcantenateMLS<pcl::PointXYZ > concat_mls_filter;
   pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
   std::vector<int> indices;
-  //concat_mls_filter.setInputCloud(cloud);
+
+  concat_mls_filter.setInputCloud(cloud);
   concat_mls_filter.setInputClouds(clouds);
   concat_mls_filter.filter(*filtered_cloud);
   // Create a publisher and name the topic.
   ROS_INFO_STREAM("Filtered");
+
+  sensor_msgs::PointCloud2 out_cloud;
+  pcl::toROSMsg (*filtered_cloud, out_cloud);
+  out_cloud.header.frame_id="/camera_depth_optical_frame";
+  out_cloud.header.stamp=ros::Time::now();
+
+  // Publish the data
+  pub.publish (out_cloud);
+
   }
 }

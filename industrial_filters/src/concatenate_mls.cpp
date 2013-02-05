@@ -26,6 +26,7 @@
 #include <pcl/surface/mls.h>
 #include "pcl/impl/instantiate.hpp"
 #include "pcl/point_types.h"
+#include "ros/ros.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
@@ -49,22 +50,33 @@ industrial_filters::ConcantenateMLS<PointT>::~ConcantenateMLS()
 template <typename PointT>
 void industrial_filters::ConcantenateMLS<PointT>::applyFilter(PointCloud &output)
 {
+  ROS_INFO_STREAM("Starting custom filtering");
   temp_cloud_=input_clouds_.at(0);
+  ROS_INFO_STREAM("temp_cloud going in has "<< temp_cloud_->size() <<" points");
   int clouds_size = input_clouds_.size();
-  for (int i=1; i<clouds_size; i++ )
+  ROS_INFO_STREAM("Number of clouds to concatenate "<< clouds_size);
+  concat_cloud_ = pcl::PointCloud<pcl::PointXYZ>::Ptr (new pcl::PointCloud<pcl::PointXYZ>);
+  if (clouds_size>1)
   {
-    //cloud += input_clouds_.at(i);
-    pcl::concatenateFields(*temp_cloud_, *input_clouds_.at(i), *concat_cloud_);
-    temp_cloud_= concat_cloud_;
+    ROS_INFO_STREAM("More than one cloud, start concatenating");
+    for (int i=1; i<clouds_size; i++ )
+    {
+      ROS_INFO_STREAM("Beginning to concatenate "<< i <<"th cloud");
+      pcl::concatenateFields(*temp_cloud_, *input_clouds_.at(i), *concat_cloud_);
+      temp_cloud_= concat_cloud_;
+    }
   }
+  ROS_INFO_STREAM("Concatenation complete");
   cloud_=temp_cloud_;
   mls_.setOutputNormals(normals_);
   mls_.setInputCloud(cloud_);
+  //mls_.setInputCloud(input_);
   mls_.setPolynomialFit (true);
   mls_.setSearchMethod (tree_);
   mls_.setSearchRadius (search_radius_);
 
   mls_.reconstruct(output);
+  ROS_INFO_STREAM("MLS complete");
 }
 
 /*template <>

@@ -70,7 +70,10 @@ class ConcantenateMLS : public pcl::Filter<PointT>
 
     void setInputClouds(const std::vector<PointCloudConstPtr>& inputClouds)
     {
-      input_clouds_ = inputClouds;
+      for (int a=0; a<inputClouds.size(); a++)//
+        {
+        input_clouds_.push_back(inputClouds.at(a));
+        }
     }
 
   public:
