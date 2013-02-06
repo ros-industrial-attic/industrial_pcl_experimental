@@ -88,16 +88,15 @@ int main(int argc, char **argv)
   concat_mls_filter.setInputCloud(cloud);
   concat_mls_filter.setInputClouds(clouds);
   concat_mls_filter.filter(*filtered_cloud);
-  // Create a publisher and name the topic.
-  ROS_INFO_STREAM("Filtered");
 
+  // Create a publish-able cloud.
   sensor_msgs::PointCloud2 out_cloud;
   pcl::toROSMsg (*filtered_cloud, out_cloud);
   out_cloud.header.frame_id="/camera_depth_optical_frame";
   out_cloud.header.stamp=ros::Time::now();
-
+  ROS_INFO_STREAM("Filtered cloud converted");
   // Publish the data
   pub.publish (out_cloud);
-
+  ROS_INFO_STREAM("Filtered cloud published");
   }
 }

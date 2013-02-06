@@ -39,6 +39,7 @@ class ConcantenateMLS : public pcl::Filter<PointT>
     typedef typename PointCloud::ConstPtr PointCloudConstPtr;
     typedef pcl::PointCloud<pcl::PointNormal> NormalCloudOut;
     typedef typename NormalCloudOut::Ptr NormalCloudOutPtr;
+    typedef typename pcl::search::KdTree<PointT>::Ptr TreePtr;
 
   public:
     const std::string& getFilterFieldName() const
@@ -95,8 +96,8 @@ class ConcantenateMLS : public pcl::Filter<PointT>
     PointCloudPtr concat_cloud_;
     PointCloudConstPtr temp_cloud_;
 
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree_;
-    pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls_;
+    TreePtr tree_;
+    pcl::MovingLeastSquares<PointT, pcl::PointNormal> mls_;
     NormalCloudOut mls_points_;
     NormalCloudOutPtr normals_;
     float search_radius_;
