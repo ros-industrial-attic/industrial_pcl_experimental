@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * concantenate_mls_test.cpp
+ * concatenate_mls_test.cpp
  *
  *  Created on: Feb 1, 2013
  *      Author: cgomez
@@ -55,12 +55,20 @@ int main(int argc, char **argv)
   bool service=true; //true enables dynamic reconfigure service
   filter_example->child_init(n, service);
 */
+  std::vector<sensor_msgs::PointCloud2::ConstPtr> input_cloud;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud  (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::fromROSMsg(*input_cloud.at(0), *cloud);
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr > clouds;// (new std::vector<pcl::PointCloud<pcl::PointXYZ> >);
+
+  industrial_filters::ConcatenateMLS<pcl::PointXYZ > concat_mls_filter;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+  std::vector<int> indices;
+  sensor_msgs::PointCloud2 out_cloud;
   while (ros::ok())
   {
   std::string topic = n.resolveName("cloud_in");
   ROS_INFO("Cloud service called; waiting for a point_cloud2 on topic %s", topic.c_str());
 
-  std::vector<sensor_msgs::PointCloud2::ConstPtr> input_cloud;
   for (int k=0; k<num_images_; k++)
   {
     sensor_msgs::PointCloud2::ConstPtr recent_cloud =
@@ -68,29 +76,19 @@ int main(int argc, char **argv)
     input_cloud.push_back(recent_cloud);
   }
   ROS_INFO_STREAM("Input Clouds gathered: "<<input_cloud.size() <<" PointCloud2's");
-
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud  (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::fromROSMsg(*input_cloud.at(0), *cloud);
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr > clouds;// (new std::vector<pcl::PointCloud<pcl::PointXYZ> >);
 /*  clouds.push_back(cloud);*/
   for (int j=0; j<num_images_; j++)
   {
-    //pcl::fromROSMsg(*input_cloud.at(j), cloud);
     pcl::fromROSMsg(*input_cloud.at(j), *cloud);
     clouds.push_back(cloud);
   }
   ROS_INFO_STREAM("Clouds set as input: "<<clouds.size() <<" PointClouds");
-
-  industrial_filters::ConcantenateMLS<pcl::PointXYZ > concat_mls_filter;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-  std::vector<int> indices;
 
   concat_mls_filter.setInputCloud(cloud);
   concat_mls_filter.setInputClouds(clouds);
   concat_mls_filter.filter(*filtered_cloud);
 
   // Create a publish-able cloud.
-  sensor_msgs::PointCloud2 out_cloud;
   pcl::toROSMsg (*filtered_cloud, out_cloud);
   out_cloud.header.frame_id="/camera_depth_optical_frame";
   out_cloud.header.stamp=ros::Time::now();
