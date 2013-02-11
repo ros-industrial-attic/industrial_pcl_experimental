@@ -12,8 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * concantenate_mls_nodelet.cpp
  *
+ * concatenate_mls_nodelet.cpp
  *
  *  Created on: Jan 31, 2013
  *      Author: cgomez
@@ -25,12 +25,12 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool
-industrial_filters_nodelets::ConcantenateMLS::child_init (ros::NodeHandle &nh, bool &has_service)
+industrial_filters_nodelets::ConcatenateMLS::child_init (ros::NodeHandle &nh, bool &has_service)
 {
   // Enable the dynamic reconfigure service
   has_service = true;
   srv_ = boost::make_shared <dynamic_reconfigure::Server<pcl_ros::FilterConfig> > (nh);
-  dynamic_reconfigure::Server<pcl_ros::FilterConfig>::CallbackType f = boost::bind (&industrial_filters_nodelets::ConcantenateMLS::config_callback, this, _1, _2);
+  dynamic_reconfigure::Server<pcl_ros::FilterConfig>::CallbackType f = boost::bind (&industrial_filters_nodelets::ConcatenateMLS::config_callback, this, _1, _2);
   srv_->setCallback (f);
 
   return (true);
@@ -38,7 +38,7 @@ industrial_filters_nodelets::ConcantenateMLS::child_init (ros::NodeHandle &nh, b
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
-industrial_filters_nodelets::ConcantenateMLS::config_callback (pcl_ros::FilterConfig &config, uint32_t level)
+industrial_filters_nodelets::ConcatenateMLS::config_callback (pcl_ros::FilterConfig &config, uint32_t level)
 {
   boost::mutex::scoped_lock lock (mutex_);
 
@@ -100,7 +100,7 @@ industrial_filters_nodelets::ConcantenateMLS::config_callback (pcl_ros::FilterCo
   }
 }
 
-typedef industrial_filters_nodelets::ConcantenateMLS ConcantenateMLS;
-PLUGINLIB_DECLARE_CLASS (industrial_filters, ConcantenateMLS, ConcantenateMLS, nodelet::Nodelet);
+typedef industrial_filters_nodelets::ConcatenateMLS ConcatenateMLS;
+PLUGINLIB_DECLARE_CLASS (industrial_filters, ConcatenateMLS, ConcatenateMLS, nodelet::Nodelet);
 
 

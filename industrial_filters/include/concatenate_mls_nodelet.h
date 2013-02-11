@@ -12,9 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * concantenate_mls_nodelet.cpp
  *
- * concantenate_mls_nodelet.h
+ * concatenate_mls_nodelet.h
  *
  *  Created on: Jan 31, 2013
  *      Author: cgomez
@@ -22,19 +21,19 @@
  *
  */
 
-#ifndef CONCANTENATE_MLS_NODELET_H_
-#define CONCANTENATE_MLS_NODELET_H_
+#ifndef CONCATENATE_MLS_NODELET_H_
+#define CONCATENATE_MLS_NODELET_H_
 
 #include "pcl_ros/filters/filter.h"
 #include "concatenate_mls.h"
 
 namespace industrial_filters_nodelets
 {
-  /** \brief @b ConcantenateMLS uses the base Filter class methods to pass through all data that satisfies the user given
+  /** \brief @b ConcatenateMLS uses the base Filter class methods to pass through all data that satisfies the user given
     * constraints.
     * \author Christina Gomez
     */
-  class ConcantenateMLS : public pcl_ros::Filter
+  class ConcatenateMLS : public pcl_ros::Filter
   {
     protected:
       /** \brief Pointer to a dynamic reconfigure service. */
@@ -71,12 +70,11 @@ namespace industrial_filters_nodelets
 
     private:
       /** \brief The PCL filter implementation used. */
-      //pcl::PassThrough<sensor_msgs::PointCloud2> impl_;
-      industrial_filters::ConcantenateMLS<sensor_msgs::PointCloud2> impl_;
+      industrial_filters::ConcatenateMLS<PointCloud2> impl_;
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 }
 
-#endif /* CONCANTENATE_MLS_NODELET_H_ */
+#endif /* CONCATENATE_MLS_NODELET_H_ */

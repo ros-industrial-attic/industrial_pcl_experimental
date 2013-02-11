@@ -14,7 +14,7 @@
   <depend package="nodelet"/>
   <export>
   	<rosbuild cmake_directory="${prefix}/cmake"/>
-    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lindustrialfilters -lindustrialnodelet"/>    
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lindustrial_filters "/>    
 
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
   </export>

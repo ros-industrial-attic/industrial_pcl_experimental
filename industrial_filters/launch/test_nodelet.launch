@@ -1,0 +1,52 @@
+<launch>
+  <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
+
+  <!-- Run a Voxel Grid filter 
+  <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid pcl_manager" output="screen">
+    <remap from="~input" to="/camera/depth/points" />
+    <rosparam>
+      filter_field_name: z
+      filter_limit_min: 0.5
+      filter_limit_max: 1.5
+      filter_limit_negative: False
+      leaf_size: 0.01
+    </rosparam>
+  </node>
+-->
+  <!-- Segment the table plane 
+  <node pkg="nodelet" type="nodelet" name="planar_segmentation" args="load pcl/SACSegmentation pcl_manager" output="screen">
+    <remap from="~input" to="/voxel_grid/output" />
+    <rosparam>
+      use_indices: true
+      latched_indices: true
+      # -[ Mandatory parameters
+      model_type: 0
+      distance_threshold: 0.05
+
+      method_type: 0
+      optimize_coefficients : true
+   </rosparam>
+  </node>
+-->
+  <!-- Then Extract the Inlier Points 
+  <node pkg="nodelet" type="nodelet" name="extract_plane" args="load pcl/ExtractIndices pcl_manager" output="screen">
+    <remap from="~input" to="/voxel_grid/output" />
+    <remap from="/extract_plane/indices" to="/sac_plane/inliers" />
+  </node>
+  -->
+  
+    <!-- Try Concatenating and MLS-->
+  <node pkg="nodelet" type="nodelet" name="concat_mls" args="load industrial_filters/ConcatenateMLS pcl_manager" output="screen">
+    <remap from="~input" to="/camera/depth_registered/points" />
+    <remap from="~topic" to="/camera/depth_registered/points" />
+    <rosparam>
+      topic: /camera/depth_registered/points
+      filter_field_name: z
+      filter_limit_min: 0.5
+      filter_limit_max: 1.5
+      filter_limit_negative: False
+      mls_search_radius: 0.003
+    </rosparam>
+  </node>
+   <node pkg="dynamic_reconfigure" type="reconfigure_gui" name="reconfigure_gui"/>
+</launch>

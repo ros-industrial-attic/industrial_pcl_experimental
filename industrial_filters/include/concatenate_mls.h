@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- *
- * concantenate_mls.h
+ * concatenate_mls.h
  *
  *  Created on: Jan 31, 2013
  *      Author: cgomez
@@ -31,7 +30,7 @@ namespace industrial_filters
 {
 
 template <typename PointT>
-class ConcantenateMLS : public pcl::Filter<PointT>
+class ConcatenateMLS : public pcl::Filter<PointT>
   {
   protected:
     typedef typename pcl::PointCloud<PointT> PointCloud;
@@ -78,8 +77,8 @@ class ConcantenateMLS : public pcl::Filter<PointT>
     }
 
   public:
-    ConcantenateMLS();
-    ~ConcantenateMLS();
+    ConcatenateMLS();
+    ~ConcatenateMLS();
 
   protected:
     void applyFilter (PointCloud &output);
@@ -102,21 +101,27 @@ class ConcantenateMLS : public pcl::Filter<PointT>
     NormalCloudOutPtr normals_;
     float search_radius_;
   };
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   template <>
-  class ConcantenateMLS<sensor_msgs::PointCloud2> : public pcl::Filter<sensor_msgs::PointCloud2>
+  class ConcatenateMLS<sensor_msgs::PointCloud2> : public pcl::Filter<sensor_msgs::PointCloud2>
   {
+  //typedef sensor_msgs::PointCloud2 PointCloud2;
+  //typedef PointCloud2::Ptr PointCloud2Ptr;
+  //typedef PointCloud2::ConstPtr PointCloud2ConstPtr;
+  typedef pcl::PointCloud<pcl::PointNormal> NormalCloudOut;
+  typedef typename NormalCloudOut::Ptr NormalCloudOutPtr;
+  typedef typename pcl::search::KdTree<pcl::PointXYZ>::Ptr TreePtr;
   protected:
-    typedef sensor_msgs::PointCloud2 PointCloud2;
-    void applyFilter (PointCloud2 &output);
 
   public:
-    const std::string& getFilterFieldName() const
+    ConcatenateMLS ();
+    ~ConcatenateMLS();
+    inline const std::string& getFilterFieldName() const
     {
       return filter_field_name_;
     }
 
-    void setFilterFieldName(const std::string& filterFieldName)
+    inline void setFilterFieldName(const std::string& filterFieldName)
     {
       filter_field_name_ = filterFieldName;
     }
@@ -133,30 +138,58 @@ class ConcantenateMLS : public pcl::Filter<PointT>
       filter_limit_min_ = limit_min;
     }
 
-    bool getKeepOrganized() const
+    inline bool getKeepOrganized() const
     {
       return keep_organized_;
     }
 
-    void setKeepOrganized(bool keepOrganized)
+    inline void setKeepOrganized(bool keepOrganized)
     {
       keep_organized_ = keepOrganized;
     }
 
-    bool getFilterLimitNegative() const
+    inline bool getFilterLimitNegative() const
     {
       return filter_limit_negative_;
     }
 
-    void getFilterLimitsNegative (bool &limit_negative)
+    inline void getFilterLimitsNegative (bool &limit_negative)
     {
       limit_negative = filter_limit_negative_;
     }
 
-    void setFilterLimitNegative(const bool filterLimitNegative)
+    inline void setFilterLimitNegative(const bool filterLimitNegative)
     {
       filter_limit_negative_ = filterLimitNegative;
     }
+
+    float getUserFilterValue() const
+    {
+      return user_filter_value_;
+    }
+
+    int getNumImages() const
+    {
+      return num_images_;
+    }
+
+    void setNumImages(int numImages)
+    {
+      num_images_ = numImages;
+    }
+
+    const std::string& getTopic() const
+    {
+      return topic_;
+    }
+
+    void setTopic(const std::string& topic)
+    {
+      topic_ = topic;
+    }
+
+  protected:
+    void applyFilter (sensor_msgs::PointCloud2 &output);
 
   private:
     bool keep_organized_;
@@ -164,9 +197,24 @@ class ConcantenateMLS : public pcl::Filter<PointT>
     double filter_limit_min_;
     double filter_limit_max_;
     bool filter_limit_negative_;
+    float user_filter_value_;
+    std::vector<sensor_msgs::PointCloud2::ConstPtr> input_clouds_;
+    int num_images_;
+    std::string topic_;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr concat_cloud_;
+    pcl::PointCloud<pcl::PointXYZ>::ConstPtr temp_cloud_;
+    pcl::PointCloud<pcl::PointXYZ> output_pc_;
+    TreePtr tree_;
+    pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls_;
+    NormalCloudOut mls_points_;
+    NormalCloudOutPtr normals_;
+    float search_radius_;
+    using pcl::Filter<sensor_msgs::PointCloud2>::removed_indices_;
+    using pcl::Filter<sensor_msgs::PointCloud2>::extract_removed_indices_;
 
   };
 }
 
+#define PCL_INSTANTIATE_ConcatenateMLS(T) template class PCL_EXPORTS industrual_filters::ConcatenateMLS<T>;
 
-#endif /* CONCANTENATE_MLS_H_ */
+#endif /* CONCATENATE_MLS_H_ */

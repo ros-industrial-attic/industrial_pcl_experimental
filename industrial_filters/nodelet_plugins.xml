@@ -1,7 +1,7 @@
-<library path="lib/libindustrialnodelet">
-  <class name="industrial_filters/ConcantenateMLS" type="industrial_filters_nodelets::ConcantenateMLS" base_class_type="nodelet::Nodelet">
+<library path="lib/libindustrial_filters">
+  <class name="industrial_filters/ConcatenateMLS" type="ConcatenateMLS" base_class_type="nodelet::Nodelet">
     <description>
-      ConcantenateMLS is a filter that uses the basic pcl_ros::Filter class mechanisms for passing data around. It should use theo concantenate function and an averaging function on point clouds.
+      ConcatenateMLS is a filter that uses the basic pcl_ros::Filter class mechanisms for passing data around. It should use theo concatenate function and an averaging function on point clouds.
     </description>
   </class>
 

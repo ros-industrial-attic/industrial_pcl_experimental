@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  *
- * concantenate_mls.cpp
+ * concatenate_mls.cpp
  *
  *  Created on: Jan 31, 2013
  *      Author: cgomez
@@ -30,25 +30,26 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
-industrial_filters::ConcantenateMLS<PointT>::ConcantenateMLS():
-filter_limit_min_(FLT_MIN),
-filter_limit_max_(FLT_MAX),
-filter_field_name_(""),
-search_radius_(0.003)
-{
-  //Constructor
-  filter_name_="ConcantenateMLS";
-}
+industrial_filters::ConcatenateMLS<PointT>::ConcatenateMLS():
+    filter_limit_min_(FLT_MIN),
+    filter_limit_max_(FLT_MAX),
+    filter_field_name_(""),
+    search_radius_(0.003)
+    {
+      //Constructor
+      filter_name_="ConcatenateMLS";
+    }
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
-industrial_filters::ConcantenateMLS<PointT>::~ConcantenateMLS()
+industrial_filters::ConcatenateMLS<PointT>::~ConcatenateMLS()
 {
   //Destructor
 
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
-void industrial_filters::ConcantenateMLS<PointT>::applyFilter(PointCloud &output)
+void industrial_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &output)
 {
   ROS_INFO_STREAM("Starting custom filtering");
   //*concat_cloud_=*input_clouds_.at(0);
@@ -62,8 +63,6 @@ void industrial_filters::ConcantenateMLS<PointT>::applyFilter(PointCloud &output
     for (int i=0; i<clouds_size; i++ )
     {
       ROS_INFO_STREAM("Beginning to concatenate "<< i <<"th cloud");
-      //pcl::concatenateFields(*temp_cloud_, *input_clouds_.at(i), *concat_cloud_);
-      //temp_cloud_= concat_cloud_;
       temp_cloud_=input_clouds_.at(i);
       *concat_cloud_+= *temp_cloud_;
     }
@@ -88,22 +87,82 @@ void industrial_filters::ConcantenateMLS<PointT>::applyFilter(PointCloud &output
 
 }
 
-/*template <>
-industrial_filters::ConcantenateMLS<pcl::PointXYZ>::ConcantenateMLS():
+void industrial_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilter(sensor_msgs::PointCloud2 &output)
+{
+  ROS_INFO_STREAM("Starting custom filtering ...");
+  ROS_INFO("ConcatenateMLS node called; waiting for a point_cloud2 on topic %s", topic_.c_str());
+
+  for (int k=0; k<num_images_; k++)
+  {
+    sensor_msgs::PointCloud2::ConstPtr recent_cloud =
+    ros::topic::waitForMessage<sensor_msgs::PointCloud2>(topic_, ros::Duration(3.0));
+    input_clouds_.push_back(recent_cloud);
+  }
+  ROS_INFO_STREAM("Input Clouds gathered: "<<input_clouds_.size() <<" PointCloud2's");
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud  (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::fromROSMsg(*input_clouds_.at(0), *cloud);
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr > clouds;
+  for (int j=0; j<num_images_; j++)
+    {
+      pcl::fromROSMsg(*input_clouds_.at(j), *cloud);
+      clouds.push_back(cloud);
+    }
+  ROS_INFO_STREAM("Clouds set as input: "<<clouds.size() <<" PointClouds");
+  concat_cloud_ = pcl::PointCloud<pcl::PointXYZ>::Ptr (new pcl::PointCloud<pcl::PointXYZ>);
+  if (input_clouds_.size()>0)
+    {
+      ROS_INFO_STREAM("More than one cloud, start concatenating");
+      for (int i=0; i<clouds.size(); i++ )
+      {
+        ROS_INFO_STREAM("Beginning to concatenate "<< i <<"th cloud");
+        temp_cloud_=clouds.at(i);
+        *concat_cloud_+= *temp_cloud_;
+      }
+    }
+  else
+  {
+    ROS_ERROR_STREAM("No clouds passed into concatenate/MLS function");
+  }
+
+  ROS_INFO_STREAM("cloud after concat has "<<concat_cloud_->size() <<" points");
+
+  mls_.setOutputNormals(normals_);
+  mls_.setInputCloud(concat_cloud_);
+  //mls_.setInputCloud(input_);
+  mls_.setPolynomialFit (true);
+  mls_.setSearchMethod (tree_);
+  mls_.setSearchRadius (search_radius_);
+
+  mls_.reconstruct(output_pc_);
+  ROS_INFO_STREAM("cloud after MLS has "<<output_pc_.size() <<" points");
+
+  pcl::toROSMsg(output_pc_, output);
+  output.header.frame_id="/camera_depth_optical_frame";
+  output.header.stamp=ros::Time::now();
+  ROS_INFO_STREAM("Filtered cloud converted");
+  input_clouds_.clear();
+}
+
+industrial_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::ConcatenateMLS():
+pcl::Filter<sensor_msgs::PointCloud2>::Filter (false),
+keep_organized_(false),
+user_filter_value_ (std::numeric_limits<float>::quiet_NaN ()),
+filter_field_name_(""),
 filter_limit_min_(FLT_MIN),
 filter_limit_max_(FLT_MAX),
-filter_field_name_(""),
+filter_limit_negative_(false),
+num_images_(3),
 search_radius_(0.003)
-{
-  //Constructor
-  filter_name_="ConcantenateMLS";
-}
-*/
-template class industrial_filters::ConcantenateMLS< pcl::PointXYZ >;
-//template class industrial_filters::ConcantenateMLS< pcl::PointXYZRGB >;
+  {
+    filter_name_="ConcatenateMLS";
+    topic_="camera/depth_registered/points";
+  }
+industrial_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::~ConcatenateMLS()
+  {
+    input_clouds_.clear();
+  }
 //The macro PCL_INSTANTIATE does nothing else but go over a given list of types and creates an explicit instantiation for each
-//#define PCL_INSTANTIATE_Concantenate(T) template class PCL_EXPORTS industrial_filters::ConcantenateMLS<T>;
-//typedef industrial_filters::ConcantenateMLS ConcantenateMLS;
-//#define PCL_INSTANTIATE(ConcantenateMLS, PCL_XYZ_POINT_TYPES);
-//#define PCL_INSTANTIATE(ConcantenateMLS, POINT_TYPES)        \
-//  BOOST_PP_SEQ_FOR_EACH(PCL_INSTANTIATE_IMPL, ConcantenateMLS, POINT_TYPES);
+#define PCL_INSTANTIATE(ConcatenateMLS, PCL_XYZ_POINT_TYPES);
+//#define PCL_INSTANTIATE(ConcatenateMLS, POINT_TYPES)        \
+//  BOOST_PP_SEQ_FOR_EACH(PCL_INSTANTIATE_IMPL, ConcatenateMLS, POINT_TYPES);
