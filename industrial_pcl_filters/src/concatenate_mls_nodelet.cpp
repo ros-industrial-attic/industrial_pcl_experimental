@@ -25,12 +25,13 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool
-industrial_filters_nodelets::ConcatenateMLS::child_init (ros::NodeHandle &nh, bool &has_service)
+industrial_pcl_filters_nodelets::ConcatenateMLS::child_init (ros::NodeHandle &nh, bool &has_service)
 {
   // Enable the dynamic reconfigure service
   has_service = true;
-  srv_ = boost::make_shared <dynamic_reconfigure::Server<pcl_ros::FilterConfig> > (nh);
-  dynamic_reconfigure::Server<pcl_ros::FilterConfig>::CallbackType f = boost::bind (&industrial_filters_nodelets::ConcatenateMLS::config_callback, this, _1, _2);
+  srv_ = boost::make_shared <dynamic_reconfigure::Server<industrial_pcl_filters::ConcatenateMLSConfig> > (nh);
+  dynamic_reconfigure::Server<industrial_pcl_filters::ConcatenateMLSConfig>::CallbackType f;
+  f = boost::bind (&industrial_pcl_filters_nodelets::ConcatenateMLS::config_callback, this, _1, _2);
   srv_->setCallback (f);
 
   return (true);
@@ -38,7 +39,7 @@ industrial_filters_nodelets::ConcatenateMLS::child_init (ros::NodeHandle &nh, bo
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
-industrial_filters_nodelets::ConcatenateMLS::config_callback (pcl_ros::FilterConfig &config, uint32_t level)
+industrial_pcl_filters_nodelets::ConcatenateMLS::config_callback (industrial_pcl_filters::ConcatenateMLSConfig &config, uint32_t level)
 {
   boost::mutex::scoped_lock lock (mutex_);
 
@@ -63,7 +64,6 @@ industrial_filters_nodelets::ConcatenateMLS::config_callback (pcl_ros::FilterCon
   }
 
   // Check the current value for the filter field
-  //std::string filter_field = impl_.getFilterFieldName ();
   if (impl_.getFilterFieldName () != config.filter_field_name)
   {
     // Set the filter field if different
@@ -86,7 +86,27 @@ industrial_filters_nodelets::ConcatenateMLS::config_callback (pcl_ros::FilterCon
     // Call the virtual method in the child
     impl_.setFilterLimitNegative (config.filter_limit_negative);
   }
-
+  // Check the current value for the topic name
+  if (impl_.getTopic() != config.topic)
+  {
+    NODELET_DEBUG ("[%s::config_callback] Setting the cloud topic name to: %s.", getName ().c_str (), config.topic.c_str ());
+    // Call the virtual method in the child
+    impl_.setTopic (config.topic);
+  }
+  // Check for value of number of clouds to concatenate
+  if (impl_.getNumImages() != config.num_clouds)
+  {
+    NODELET_DEBUG ("[%s::config_callback] Setting the number of clouds to concatenate to: %f.", getName ().c_str (), config.num_clouds);
+    // Call the virtual method in the child
+    impl_.setTopic (config.topic);
+  }
+  // Check for value of MLS search radius
+  if (impl_.getSearchRadius() != config.search_radius)
+  {
+    NODELET_DEBUG ("[%s::config_callback] Setting the MLS search radius to: %f.", getName ().c_str (), config.search_radius);
+    // Call the virtual method in the child
+    impl_.setSearchRadius (config.search_radius);
+  }
   // The following parameters are updated automatically for all PCL_ROS Nodelet Filters as they are inexistent in PCL
   if (tf_input_frame_ != config.input_frame)
   {
@@ -100,7 +120,7 @@ industrial_filters_nodelets::ConcatenateMLS::config_callback (pcl_ros::FilterCon
   }
 }
 
-typedef industrial_filters_nodelets::ConcatenateMLS ConcatenateMLS;
+typedef industrial_pcl_filters_nodelets::ConcatenateMLS ConcatenateMLS;
 PLUGINLIB_DECLARE_CLASS (industrial_filters, ConcatenateMLS, ConcatenateMLS, nodelet::Nodelet);
 
 

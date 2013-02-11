@@ -26,7 +26,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/surface/mls.h>
 
-namespace industrial_filters
+namespace industrial_pcl_filters
 {
 
 template <typename PointT>
@@ -186,6 +186,16 @@ class ConcatenateMLS : public pcl::Filter<PointT>
     void setTopic(const std::string& topic)
     {
       topic_ = topic;
+    }
+
+    float getSearchRadius() const
+    {
+      return search_radius_;
+    }
+
+    void setSearchRadius(float searchRadius)
+    {
+      search_radius_ = searchRadius;
     }
 
   protected:

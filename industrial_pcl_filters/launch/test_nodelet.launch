@@ -13,9 +13,30 @@
     </rosparam>
   </node>
 -->
+  
+  <!-- Run a passthrough filter to clean NaNs -->
+  <node pkg="nodelet" type="nodelet" name="passthrough1" args="load pcl/PassThrough pcl_manager" output="screen">
+    <remap from="~input" to="/camera/depth_registered/points" />
+    <rosparam>
+      filter_field_name: x
+      filter_limit_min: -0.4
+      filter_limit_max: 0.5
+      filter_limit_negative: False
+    </rosparam>
+  </node>
+    <!-- Run a passthrough filter to limit z -->
+  <node pkg="nodelet" type="nodelet" name="passthrough2" args="load pcl/PassThrough pcl_manager" output="screen">
+    <remap from="~input" to="/passthrough1/output" />
+    <rosparam>
+      filter_field_name: z
+      filter_limit_min: 0.9
+      filter_limit_max: 1.6
+      filter_limit_negative: False
+    </rosparam>
+  </node>
   <!-- Segment the table plane 
   <node pkg="nodelet" type="nodelet" name="planar_segmentation" args="load pcl/SACSegmentation pcl_manager" output="screen">
-    <remap from="~input" to="/voxel_grid/output" />
+    <remap from="~input" to="/passthrough2/output" />
     <rosparam>
       use_indices: true
       latched_indices: true
@@ -30,17 +51,19 @@
 -->
   <!-- Then Extract the Inlier Points 
   <node pkg="nodelet" type="nodelet" name="extract_plane" args="load pcl/ExtractIndices pcl_manager" output="screen">
-    <remap from="~input" to="/voxel_grid/output" />
-    <remap from="/extract_plane/indices" to="/sac_plane/inliers" />
+    <remap from="~input" to="/passthrough2/output" />
+    <remap from="~indices" to="/planar_segmentation/inliers" />
+    <rosparam>
+      negative: false
+    </rosparam>
   </node>
   -->
   
     <!-- Try Concatenating and MLS-->
   <node pkg="nodelet" type="nodelet" name="concat_mls" args="load industrial_filters/ConcatenateMLS pcl_manager" output="screen">
-    <remap from="~input" to="/camera/depth_registered/points" />
-    <remap from="~topic" to="/camera/depth_registered/points" />
+    <remap from="~input" to="/passthrough2/output" />
     <rosparam>
-      topic: /camera/depth_registered/points
+      topic: "/passthrough2/output"
       filter_field_name: z
       filter_limit_min: 0.5
       filter_limit_max: 1.5
@@ -48,5 +71,6 @@
       mls_search_radius: 0.003
     </rosparam>
   </node>
+  
    <node pkg="dynamic_reconfigure" type="reconfigure_gui" name="reconfigure_gui"/>
 </launch>

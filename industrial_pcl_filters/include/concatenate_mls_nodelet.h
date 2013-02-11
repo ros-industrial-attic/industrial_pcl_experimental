@@ -26,8 +26,10 @@
 
 #include "pcl_ros/filters/filter.h"
 #include "concatenate_mls.h"
+// Dynamic reconfigure
+#include "industrial_pcl_filters/ConcatenateMLSConfig.h"
 
-namespace industrial_filters_nodelets
+namespace industrial_pcl_filters_nodelets
 {
   /** \brief @b ConcatenateMLS uses the base Filter class methods to pass through all data that satisfies the user given
     * constraints.
@@ -37,7 +39,7 @@ namespace industrial_filters_nodelets
   {
     protected:
       /** \brief Pointer to a dynamic reconfigure service. */
-      boost::shared_ptr <dynamic_reconfigure::Server<pcl_ros::FilterConfig> > srv_;
+      boost::shared_ptr <dynamic_reconfigure::Server<industrial_pcl_filters::ConcatenateMLSConfig> > srv_;
 
       /** \brief Call the actual filter.
         * \param input the input point cloud
@@ -66,11 +68,11 @@ namespace industrial_filters_nodelets
         * \param level the dynamic reconfigure level
         */
       void
-      config_callback (pcl_ros::FilterConfig &config, uint32_t level);
+      config_callback (industrial_pcl_filters::ConcatenateMLSConfig &config, uint32_t level);
 
     private:
       /** \brief The PCL filter implementation used. */
-      industrial_filters::ConcatenateMLS<PointCloud2> impl_;
+      industrial_pcl_filters::ConcatenateMLS<PointCloud2> impl_;
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW

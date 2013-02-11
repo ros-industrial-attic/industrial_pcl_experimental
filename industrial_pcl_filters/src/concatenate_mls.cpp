@@ -30,7 +30,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
-industrial_filters::ConcatenateMLS<PointT>::ConcatenateMLS():
+industrial_pcl_filters::ConcatenateMLS<PointT>::ConcatenateMLS():
     filter_limit_min_(FLT_MIN),
     filter_limit_max_(FLT_MAX),
     filter_field_name_(""),
@@ -41,7 +41,7 @@ industrial_filters::ConcatenateMLS<PointT>::ConcatenateMLS():
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
-industrial_filters::ConcatenateMLS<PointT>::~ConcatenateMLS()
+industrial_pcl_filters::ConcatenateMLS<PointT>::~ConcatenateMLS()
 {
   //Destructor
 
@@ -49,7 +49,7 @@ industrial_filters::ConcatenateMLS<PointT>::~ConcatenateMLS()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
-void industrial_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &output)
+void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &output)
 {
   ROS_INFO_STREAM("Starting custom filtering");
   //*concat_cloud_=*input_clouds_.at(0);
@@ -87,7 +87,7 @@ void industrial_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &output)
 
 }
 
-void industrial_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilter(sensor_msgs::PointCloud2 &output)
+void industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilter(sensor_msgs::PointCloud2 &output)
 {
   ROS_INFO_STREAM("Starting custom filtering ...");
   ROS_INFO("ConcatenateMLS node called; waiting for a point_cloud2 on topic %s", topic_.c_str());
@@ -143,7 +143,7 @@ void industrial_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilter(s
   input_clouds_.clear();
 }
 
-industrial_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::ConcatenateMLS():
+industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::ConcatenateMLS():
 pcl::Filter<sensor_msgs::PointCloud2>::Filter (false),
 keep_organized_(false),
 user_filter_value_ (std::numeric_limits<float>::quiet_NaN ()),
@@ -155,12 +155,13 @@ num_images_(3),
 search_radius_(0.003)
   {
     filter_name_="ConcatenateMLS";
-    topic_="camera/depth_registered/points";
   }
-industrial_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::~ConcatenateMLS()
+industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::~ConcatenateMLS()
   {
     input_clouds_.clear();
   }
+
+template class industrial_pcl_filters::ConcatenateMLS< pcl::PointXYZ >;
 //The macro PCL_INSTANTIATE does nothing else but go over a given list of types and creates an explicit instantiation for each
 #define PCL_INSTANTIATE(ConcatenateMLS, PCL_XYZ_POINT_TYPES);
 //#define PCL_INSTANTIATE(ConcatenateMLS, POINT_TYPES)        \

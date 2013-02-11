@@ -3,7 +3,7 @@
 
     <arg name="points_in" default="camera/depth_registered/points" />
 
-    <node pkg="industrial_filters" name="test_avg_concat_node" type="concatenate_average" output="screen">
+    <node pkg="industrial_pcl_filters" name="test_avg_concat_node" type="concatenate_average" output="screen">
 	<!--topic remapping-->
         <remap from="cloud_in" to="$(arg points_in)" />
 

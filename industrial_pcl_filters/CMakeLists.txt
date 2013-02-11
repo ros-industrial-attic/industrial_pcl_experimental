@@ -40,6 +40,6 @@ rosbuild_add_library(${PROJECT_NAME} src/concatenate_mls.cpp
 
 # Enable dynamic_reconfigure
 rosbuild_find_ros_package (dynamic_reconfigure)
-#include (${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
-#gencfg ()
+include (${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
+gencfg ()
 
