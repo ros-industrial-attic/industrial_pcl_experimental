@@ -1,20 +1,20 @@
 <package>
-  <description brief="industrial_filters">
+  <description brief="industrial_pcl_filters">
 
-     industrial_filters
+     industrial__pcl_filters employs methods withing the Point Cloud Library in custom filters for industrial applications
 
   </description>
   <author>Christina Gomez</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/industrial_filters</url>
+  <url>http://ros.org/wiki/industrial_pcl_filters</url>
   <depend package="roscpp" />
   <depend package="pcl"/> 
   <depend package="pcl_ros"/>
   <depend package="nodelet"/>
   <export>
   	<rosbuild cmake_directory="${prefix}/cmake"/>
-    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lindustrial_filters "/>    
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lindustrial_pcl_filters "/>    
 
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
   </export>

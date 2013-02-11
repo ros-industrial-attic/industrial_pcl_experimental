@@ -35,8 +35,8 @@ rosbuild_add_library(${PROJECT_NAME} src/concatenate_mls.cpp
 	src/concatenate_mls_nodelet.cpp)
 #target_link_libraries(industrial_nodelet ${PROJECT_NAME})
 
-rosbuild_add_executable(concatenate_average src/nodes/concatenate_mls_test.cpp)
-target_link_libraries(concatenate_average ${PROJECT_NAME})
+#rosbuild_add_executable(concatenate_average src/nodes/concatenate_mls_test.cpp)
+#target_link_libraries(concatenate_average ${PROJECT_NAME})
 
 # Enable dynamic_reconfigure
 rosbuild_find_ros_package (dynamic_reconfigure)

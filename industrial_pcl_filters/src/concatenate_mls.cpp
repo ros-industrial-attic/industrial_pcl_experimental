@@ -129,7 +129,6 @@ void industrial_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilter(s
 
   mls_.setOutputNormals(normals_);
   mls_.setInputCloud(concat_cloud_);
-  //mls_.setInputCloud(input_);
   mls_.setPolynomialFit (true);
   mls_.setSearchMethod (tree_);
   mls_.setSearchRadius (search_radius_);
