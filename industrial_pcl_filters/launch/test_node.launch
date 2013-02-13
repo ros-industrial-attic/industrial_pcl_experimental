@@ -5,10 +5,11 @@
 
     <node pkg="industrial_pcl_filters" name="test_avg_concat_node" type="concatenate_average" output="screen">
 	<!--topic remapping-->
-        <remap from="cloud_in" to="$(arg points_in)" />
+    <remap from="cloud_in" to="$(arg points_in)" />
 
-	<param name="mls_search_radius" value="0.010" />
-	<param name="num_images_concat" value="5" />
+	<param name="mls_search_radius" value="0.004" />
+	<param name="num_images_concat" value="10" />
+	<param name="sor_mean" value="500" />
 
    </node>
 

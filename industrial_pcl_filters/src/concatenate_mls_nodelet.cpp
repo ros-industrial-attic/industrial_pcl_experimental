@@ -96,9 +96,9 @@ industrial_pcl_filters_nodelets::ConcatenateMLS::config_callback (industrial_pcl
   // Check for value of number of clouds to concatenate
   if (impl_.getNumImages() != config.num_clouds)
   {
-    NODELET_DEBUG ("[%s::config_callback] Setting the number of clouds to concatenate to: %f.", getName ().c_str (), config.num_clouds);
+    NODELET_DEBUG ("[%s::config_callback] Setting the number of clouds to concatenate to: %d.", getName ().c_str (), config.num_clouds);
     // Call the virtual method in the child
-    impl_.setTopic (config.topic);
+    impl_.setNumImages(config.num_clouds);
   }
   // Check for value of MLS search radius
   if (impl_.getSearchRadius() != config.search_radius)

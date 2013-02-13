@@ -51,20 +51,21 @@ industrial_pcl_filters::ConcatenateMLS<PointT>::~ConcatenateMLS()
 template <typename PointT>
 void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &output)
 {
+
   ROS_INFO_STREAM("Starting custom filtering");
-  //*concat_cloud_=*input_clouds_.at(0);
-  //ROS_INFO_STREAM("temp_cloud going in has "<< temp_cloud_->size() <<" points");
   int clouds_size = input_clouds_.size();
   ROS_INFO_STREAM("Number of clouds to concatenate "<< clouds_size);
-  concat_cloud_ = pcl::PointCloud<pcl::PointXYZ>::Ptr (new pcl::PointCloud<pcl::PointXYZ>);
+  concat_cloud_ = pcl::PointCloud<pcl::PointXYZRGB>::Ptr (new pcl::PointCloud<pcl::PointXYZRGB>);
   if (clouds_size>0)
   {
     ROS_INFO_STREAM("More than one cloud, start concatenating");
     for (int i=0; i<clouds_size; i++ )
     {
-      ROS_INFO_STREAM("Beginning to concatenate "<< i <<"th cloud");
+      //ROS_INFO_STREAM("Beginning to concatenate "<< i <<"th cloud");
       temp_cloud_=input_clouds_.at(i);
-      *concat_cloud_+= *temp_cloud_;
+      ROS_INFO_STREAM("Temp cloud size "<< temp_cloud_.points.size());
+      *concat_cloud_+= temp_cloud_;
+      ROS_INFO_STREAM("Concat cloud size "<< concat_cloud_->size());
     }
   }
   else
@@ -74,6 +75,7 @@ void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &out
 
   ROS_INFO_STREAM("cloud after concat has "<<concat_cloud_->size() <<" points");
 
+  /*
   cloud_=concat_cloud_;
   mls_.setOutputNormals(normals_);
   mls_.setInputCloud(cloud_);
@@ -83,7 +85,11 @@ void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &out
   mls_.setSearchRadius (search_radius_);
 
   mls_.reconstruct(output);
+  */
+  output=*concat_cloud_;
   ROS_INFO_STREAM("cloud after MLS has "<<output.size() <<" points");
+
+  input_clouds_.clear();
 
 }
 
@@ -92,6 +98,7 @@ void industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilt
   ROS_INFO_STREAM("Starting custom filtering ...");
   ROS_INFO("ConcatenateMLS node called; waiting for a point_cloud2 on topic %s", topic_.c_str());
 
+  ROS_INFO_STREAM("No. input clouds: "<<num_images_);
   for (int k=0; k<num_images_; k++)
   {
     sensor_msgs::PointCloud2::ConstPtr recent_cloud =
@@ -100,16 +107,16 @@ void industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilt
   }
   ROS_INFO_STREAM("Input Clouds gathered: "<<input_clouds_.size() <<" PointCloud2's");
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud  (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud  (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::fromROSMsg(*input_clouds_.at(0), *cloud);
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr > clouds;
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr > clouds;
   for (int j=0; j<num_images_; j++)
     {
       pcl::fromROSMsg(*input_clouds_.at(j), *cloud);
       clouds.push_back(cloud);
     }
   ROS_INFO_STREAM("Clouds set as input: "<<clouds.size() <<" PointClouds");
-  concat_cloud_ = pcl::PointCloud<pcl::PointXYZ>::Ptr (new pcl::PointCloud<pcl::PointXYZ>);
+  concat_cloud_ = pcl::PointCloud<pcl::PointXYZRGB>::Ptr (new pcl::PointCloud<pcl::PointXYZRGB>);
   if (input_clouds_.size()>0)
     {
       ROS_INFO_STREAM("More than one cloud, start concatenating");
@@ -136,6 +143,7 @@ void industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilt
   mls_.reconstruct(output_pc_);
   ROS_INFO_STREAM("cloud after MLS has "<<output_pc_.size() <<" points");
 
+  //pcl::toROSMsg(*concat_cloud_, output);
   pcl::toROSMsg(output_pc_, output);
   output.header.frame_id="/camera_depth_optical_frame";
   output.header.stamp=ros::Time::now();
@@ -146,11 +154,11 @@ void industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilt
 industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::ConcatenateMLS():
 pcl::Filter<sensor_msgs::PointCloud2>::Filter (false),
 keep_organized_(false),
-user_filter_value_ (std::numeric_limits<float>::quiet_NaN ()),
 filter_field_name_(""),
 filter_limit_min_(FLT_MIN),
 filter_limit_max_(FLT_MAX),
 filter_limit_negative_(false),
+user_filter_value_ (std::numeric_limits<float>::quiet_NaN ()),
 num_images_(3),
 search_radius_(0.003)
   {
@@ -161,8 +169,15 @@ industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::~ConcatenateML
     input_clouds_.clear();
   }
 
-template class industrial_pcl_filters::ConcatenateMLS< pcl::PointXYZ >;
+//Partial list of
+//template class industrial_pcl_filters::ConcatenateMLS<pcl::PointXYZ>;
+//template class industrial_pcl_filters::ConcatenateMLS<pcl::PointXYZI>;
+template class industrial_pcl_filters::ConcatenateMLS<pcl::PointXYZRGB>;
+/*template class industrial_pcl_filters::ConcatenateMLS<pcl::PointXYZRGBA>;
+template class industrial_pcl_filters::ConcatenateMLS<pcl::PointXY>;
+template class industrial_pcl_filters::ConcatenateMLS<pcl::InterestPoint>;
+template class industrial_pcl_filters::ConcatenateMLS<pcl::Normal>;
+template class industrial_pcl_filters::ConcatenateMLS<pcl::PointNormal>;
+template class industrial_pcl_filters::ConcatenateMLS<pcl::PointXYZRGBNormal>;*/
 //The macro PCL_INSTANTIATE does nothing else but go over a given list of types and creates an explicit instantiation for each
-#define PCL_INSTANTIATE(ConcatenateMLS, PCL_XYZ_POINT_TYPES);
-//#define PCL_INSTANTIATE(ConcatenateMLS, POINT_TYPES)        \
-//  BOOST_PP_SEQ_FOR_EACH(PCL_INSTANTIATE_IMPL, ConcatenateMLS, POINT_TYPES);
+//#define PCL_INSTANTIATE(ConcatenateMLS, PCL_XYZ_POINT_TYPES);

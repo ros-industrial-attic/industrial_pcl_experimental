@@ -32,7 +32,7 @@ namespace industrial_pcl_filters
 template <typename PointT>
 class ConcatenateMLS : public pcl::Filter<PointT>
   {
-  protected:
+
     typedef typename pcl::PointCloud<PointT> PointCloud;
     typedef typename PointCloud::Ptr PointCloudPtr;
     typedef typename PointCloud::ConstPtr PointCloudConstPtr;
@@ -63,12 +63,12 @@ class ConcatenateMLS : public pcl::Filter<PointT>
       filter_limit_min_ = limit_min;
     }
 
-    const std::vector<PointCloudConstPtr>& getInputClouds() const
+    const std::vector<PointCloud>& getInputClouds() const
     {
       return input_clouds_;
     }
 
-    void setInputClouds(const std::vector<PointCloudConstPtr>& inputClouds)
+    void setInputClouds(const std::vector<PointCloud>& inputClouds)
     {
       for (int a=0; a<inputClouds.size(); a++)//
         {
@@ -87,13 +87,13 @@ class ConcatenateMLS : public pcl::Filter<PointT>
     using pcl::PCLBase<PointT>::input_;
 
   private:
-    std::vector<PointCloudConstPtr> input_clouds_;
+    std::vector<PointCloud> input_clouds_;
     std::string filter_field_name_;
     float filter_limit_min_;
     float filter_limit_max_;
     PointCloudConstPtr cloud_;
     PointCloudPtr concat_cloud_;
-    PointCloudConstPtr temp_cloud_;
+    PointCloud temp_cloud_;
 
     TreePtr tree_;
     pcl::MovingLeastSquares<PointT, pcl::PointNormal> mls_;
@@ -110,7 +110,7 @@ class ConcatenateMLS : public pcl::Filter<PointT>
   //typedef PointCloud2::ConstPtr PointCloud2ConstPtr;
   typedef pcl::PointCloud<pcl::PointNormal> NormalCloudOut;
   typedef typename NormalCloudOut::Ptr NormalCloudOutPtr;
-  typedef typename pcl::search::KdTree<pcl::PointXYZ>::Ptr TreePtr;
+  typedef typename pcl::search::KdTree<pcl::PointXYZRGB>::Ptr TreePtr;
   protected:
 
   public:
@@ -211,11 +211,11 @@ class ConcatenateMLS : public pcl::Filter<PointT>
     std::vector<sensor_msgs::PointCloud2::ConstPtr> input_clouds_;
     int num_images_;
     std::string topic_;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr concat_cloud_;
-    pcl::PointCloud<pcl::PointXYZ>::ConstPtr temp_cloud_;
-    pcl::PointCloud<pcl::PointXYZ> output_pc_;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr concat_cloud_;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr temp_cloud_;
+    pcl::PointCloud<pcl::PointXYZRGB> output_pc_;
     TreePtr tree_;
-    pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls_;
+    pcl::MovingLeastSquares<pcl::PointXYZRGB, pcl::PointNormal> mls_;
     NormalCloudOut mls_points_;
     NormalCloudOutPtr normals_;
     float search_radius_;
@@ -224,7 +224,5 @@ class ConcatenateMLS : public pcl::Filter<PointT>
 
   };
 }
-
-#define PCL_INSTANTIATE_ConcatenateMLS(T) template class PCL_EXPORTS industrual_filters::ConcatenateMLS<T>;
 
 #endif /* CONCATENATE_MLS_H_ */

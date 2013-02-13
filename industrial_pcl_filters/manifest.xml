@@ -12,6 +12,7 @@
   <depend package="pcl"/> 
   <depend package="pcl_ros"/>
   <depend package="nodelet"/>
+  <depend package="tabletop_object_detector"/>
   <export>
   	<rosbuild cmake_directory="${prefix}/cmake"/>
     <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lindustrial_pcl_filters "/>    
