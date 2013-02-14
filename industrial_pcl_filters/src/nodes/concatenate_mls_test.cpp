@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         cluster.points.clear();
         //recent_cloud.reset();
         recent_cloud->data.clear();
-        //cloud.reset();
+        //cloud->points.clear();
         cloud.points.clear();
     if (!seg_srv_.call(segmentation_srv))
       {
@@ -116,31 +116,19 @@ int main(int argc, char **argv)
              << " clusters of " << segmentation_srv.response.clusters[0].points.size() << " size");
 
     cluster=segmentation_srv.response.clusters[0];
-    ROS_INFO_STREAM("Cluster size: "<<cluster.points.size());
+    //ROS_INFO_STREAM("Cluster size: "<<cluster.points.size());
     sensor_msgs::convertPointCloudToPointCloud2(cluster, *recent_cloud);
     recent_cloud->header.frame_id="/camera_depth_optical_frame";
     recent_cloud->header.stamp=ros::Time::now();
-    ROS_INFO_STREAM("Recent_cloud size: "<<recent_cloud->data.size());
+    //ROS_INFO_STREAM("Recent_cloud size: "<<recent_cloud->data.size());
     input_clouds.push_back(recent_cloud);
     pcl::fromROSMsg(*recent_cloud, cloud);
-    ROS_INFO_STREAM("Cloud size: "<<cloud.points.size());
+    //ROS_INFO_STREAM("Cloud size: "<<cloud.points.size());
     clouds.push_back(cloud);
 
     ROS_INFO_STREAM("input_clouds at "<< j <<" has "<< input_clouds.at(j)->data.size() <<" points");
 
   }
-
-  std::vector<pcl::PointCloud<pcl::PointXYZRGB> >::const_iterator iter;
-  //for (int i=0; i<num_images_; i++)
-  for ( iter = clouds.begin(); iter != clouds.end(); ++iter )
-  {
-    //pcl::fromROSMsg(*iter, *cloud);
-    //pcl::fromROSMsg(*input_clouds.at(i), *cloud);
-    //clouds.push_back(cloud);
-    //ROS_INFO_STREAM("Clouds at "<< i <<" has "<< clouds.at(i)->points.size() <<" points");
-    ROS_INFO_STREAM("Clouds has "<< (*iter).points.size() <<" points");
-  }
-
 
   ROS_INFO_STREAM("Clouds set as input: "<<clouds.size() <<" PointClouds");
 
@@ -171,8 +159,8 @@ int main(int argc, char **argv)
   pcl::PCDWriter writer;
   std::stringstream fileName_ss, fileName2;
   fileName_ss << "pcd_files/" << num_images_ << "_" << search_radius_*1000 << ".pcd";
-  writer.write(fileName_ss.str(), *sor_filtered_cloud);
-  ROS_INFO_STREAM("Saved " << sor_filtered_cloud->points.size() << " data points to " << fileName_ss.str());
+  writer.write(fileName_ss.str(), *mls_filtered_cloud);
+  ROS_INFO_STREAM("Saved " << mls_filtered_cloud->points.size() << " data points to " << fileName_ss.str());
   fileName2 << "pcd_files/1.pcd";
   writer.write(fileName2.str(), cloud);
   ROS_INFO_STREAM("Saved " << cloud.points.size() << " data points to " << fileName2.str());

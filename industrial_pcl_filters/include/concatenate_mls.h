@@ -39,6 +39,7 @@ class ConcatenateMLS : public pcl::Filter<PointT>
     typedef pcl::PointCloud<pcl::PointNormal> NormalCloudOut;
     typedef typename NormalCloudOut::Ptr NormalCloudOutPtr;
     typedef typename pcl::search::KdTree<PointT>::Ptr TreePtr;
+    //typedef typename std::vector<PointCloudConstPtr>::const_iterator Iter;
 
   public:
     const std::string& getFilterFieldName() const
@@ -70,10 +71,12 @@ class ConcatenateMLS : public pcl::Filter<PointT>
 
     void setInputClouds(const std::vector<PointCloud>& inputClouds)
     {
-      for (int a=0; a<inputClouds.size(); a++)//
+      input_clouds_=inputClouds;
+      /*for (iter_=inputClouds.begin(); iter_!=inputClouds.end(); ++iter_)
         {
-        input_clouds_.push_back(inputClouds.at(a));
-        }
+          input_clouds_.push_back((*iter_));
+          //ROS_INFO_STREAM("clouds has "<< (*iter_)->points.size() <<" points");
+        }*/
     }
 
   public:
@@ -87,6 +90,7 @@ class ConcatenateMLS : public pcl::Filter<PointT>
     using pcl::PCLBase<PointT>::input_;
 
   private:
+    //std::vector<PointCloudConstPtr> input_clouds_;
     std::vector<PointCloud> input_clouds_;
     std::string filter_field_name_;
     float filter_limit_min_;
@@ -94,6 +98,8 @@ class ConcatenateMLS : public pcl::Filter<PointT>
     PointCloudConstPtr cloud_;
     PointCloudPtr concat_cloud_;
     PointCloud temp_cloud_;
+    //PointCloudConstPtr temp_cloud_;
+    //Iter iter_;
 
     TreePtr tree_;
     pcl::MovingLeastSquares<PointT, pcl::PointNormal> mls_;

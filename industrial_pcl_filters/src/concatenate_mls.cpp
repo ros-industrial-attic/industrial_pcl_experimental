@@ -59,6 +59,7 @@ void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &out
   if (clouds_size>0)
   {
     ROS_INFO_STREAM("More than one cloud, start concatenating");
+    //for (iter_=input_clouds_.begin(); iter_!=input_clouds_.end(); ++iter_)
     for (int i=0; i<clouds_size; i++ )
     {
       //ROS_INFO_STREAM("Beginning to concatenate "<< i <<"th cloud");
@@ -75,7 +76,7 @@ void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &out
 
   ROS_INFO_STREAM("cloud after concat has "<<concat_cloud_->size() <<" points");
 
-  /*
+
   cloud_=concat_cloud_;
   mls_.setOutputNormals(normals_);
   mls_.setInputCloud(cloud_);
@@ -85,8 +86,7 @@ void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &out
   mls_.setSearchRadius (search_radius_);
 
   mls_.reconstruct(output);
-  */
-  output=*concat_cloud_;
+
   ROS_INFO_STREAM("cloud after MLS has "<<output.size() <<" points");
 
   input_clouds_.clear();
