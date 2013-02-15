@@ -118,7 +118,7 @@ int main(int argc, char **argv)
     cluster=segmentation_srv.response.clusters[0];
     //ROS_INFO_STREAM("Cluster size: "<<cluster.points.size());
     sensor_msgs::convertPointCloudToPointCloud2(cluster, *recent_cloud);
-    recent_cloud->header.frame_id="/camera_depth_optical_frame";
+    recent_cloud->header.frame_id="/camera_rgb_optical_frame";
     recent_cloud->header.stamp=ros::Time::now();
     //ROS_INFO_STREAM("Recent_cloud size: "<<recent_cloud->data.size());
     input_clouds.push_back(recent_cloud);

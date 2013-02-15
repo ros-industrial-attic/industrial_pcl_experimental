@@ -79,13 +79,6 @@ industrial_pcl_filters_nodelets::ConcatenateMLS::config_callback (industrial_pcl
     impl_.setKeepOrganized (config.keep_organized);
   }
 
-  // Check the current value for the negative flag
-  if (impl_.getFilterLimitNegative () != config.filter_limit_negative)
-  {
-    NODELET_DEBUG ("[%s::config_callback] Setting the filter negative flag to: %s.", getName ().c_str (), config.filter_limit_negative ? "true" : "false");
-    // Call the virtual method in the child
-    impl_.setFilterLimitNegative (config.filter_limit_negative);
-  }
   // Check the current value for the topic name
   if (impl_.getTopic() != config.topic)
   {
