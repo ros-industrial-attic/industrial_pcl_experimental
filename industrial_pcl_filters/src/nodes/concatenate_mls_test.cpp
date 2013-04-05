@@ -19,12 +19,15 @@
  *      Author: cgomez
  */
 
-#include "concatenate_mls.h"
+#include "industrial_pcl_filters/concatenate_mls.h"
 #include "ros/ros.h"
 
 #include <iostream>
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/filters/bilateral.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/filters/passthrough.h>
 #include <tabletop_object_detector/TabletopSegmentation.h>
 
 #include <sensor_msgs/PointCloud.h>
@@ -41,13 +44,21 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "concatenate_average");
   ros::NodeHandle n;
   ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("avg_filtered_cloud", 100);
-  ros::ServiceClient seg_srv_ = n.serviceClient<tabletop_object_detector::TabletopSegmentation>("/tabletop_segmentation", true);
+  ros::ServiceClient seg_srv_ = n.serviceClient<tabletop_object_detector::TabletopSegmentation>("ur5_arm/tabletop_segmentation", true);
   ROS_INFO_STREAM("Initialized concatenating and MLS averaging node");
 
   // Declare variables that can be modified by launch file or command line.
   double search_radius_;
   int num_images_;
   int mean_k_;
+  double mul_thresh_;
+  bool use_bilateral_;
+  double sigma_s_;
+  double sigma_r_;
+  double x_filter_min_;
+  double x_filter_max_;
+  double y_filter_min_;
+  double y_filter_max_;
 
   // Initialize node parameters from launch file or command line.
   // Use a private node handle so that multiple instances of the node can be run simultaneously
@@ -57,25 +68,37 @@ int main(int argc, char **argv)
   private_nh_.param("mls_search_radius", search_radius_, double(0.003));
   private_nh_.param("num_images_concat", num_images_, int(10));
   private_nh_.param("sor_mean", mean_k_, int(10));
+  private_nh_.param("sor_thresh", mul_thresh_, double(1.0));
+  private_nh_.param("use_bilateral", use_bilateral_, bool(false));
+  private_nh_.param("sigma_s", sigma_s_, double(1.0));
+  private_nh_.param("sigma_r", sigma_r_, double(1.0));
+  private_nh_.param("x_filter_min", x_filter_min_, double(-1.0));
+  private_nh_.param("x_filter_max", x_filter_max_, double(1.0));
+  private_nh_.param("y_filter_min", y_filter_min_, double(-1.0));
+  private_nh_.param("y_filter_max", y_filter_max_, double(1.0));
 
   //Declare all types of clouds used
-  sensor_msgs::PointCloud2::Ptr recent_cloud (new sensor_msgs::PointCloud2);
+  //sensor_msgs::PointCloud2::ConstPtr recent_cloud (new sensor_msgs::PointCloud2);
   std::vector<sensor_msgs::PointCloud2::ConstPtr> input_clouds;
   std::vector<pcl::PointCloud<pcl::PointXYZRGB> > clouds;// (new std::vector<pcl::PointCloud<pcl::PointXYZRGB> >);
   pcl::PointCloud<pcl::PointXYZRGB> cloud;//  (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB> xf_cloud;//  (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB> yf_cloud;//  (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr Cloud  (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr mls_filtered_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr sor_filtered_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr sor_filtered_cloud (new pcl::PointCloud<pcl::PointXYZI>);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr bilateral_pre_cloud (new pcl::PointCloud<pcl::PointXYZI>);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr bilateral_filtered_cloud (new pcl::PointCloud<pcl::PointXYZI>);
   sensor_msgs::PointCloud2 out_cloud;
   sensor_msgs::PointCloud cluster;
 
   //Make instance of concat_mls class
   industrial_pcl_filters::ConcatenateMLS<pcl::PointXYZRGB > concat_mls_filter;
   //Segmentation
-  tabletop_object_detector::TabletopSegmentation segmentation_srv;
+/*  tabletop_object_detector::TabletopSegmentation segmentation_srv;
   //while (ros::ok())
   //{
-/*  std::string topic = n.resolveName("cloud_in");
+  std::string topic = n.resolveName("cloud_in");
   ROS_INFO("Cloud service called; waiting for a point_cloud2 on topic %s", topic.c_str());
   sensor_msgs::PointCloud clustervector;
   clustervector=segmentation_srv.response.clusters[0];
@@ -94,16 +117,8 @@ int main(int argc, char **argv)
   {
     pcl::fromROSMsg(*input_cloud.at(j), *cloud);
     clouds.push_back(cloud);
-  }*/
-  for (int j=0; j<num_images_; j++)
-  {
 
-        cluster.points.clear();
-        //recent_cloud.reset();
-        recent_cloud->data.clear();
-        //cloud->points.clear();
-        cloud.points.clear();
-    if (!seg_srv_.call(segmentation_srv))
+        if (!seg_srv_.call(segmentation_srv))
       {
         ROS_ERROR("Call to segmentation service failed");
       }
@@ -116,17 +131,52 @@ int main(int argc, char **argv)
              << " clusters of " << segmentation_srv.response.clusters[0].points.size() << " size");
 
     cluster=segmentation_srv.response.clusters[0];
-    //ROS_INFO_STREAM("Cluster size: "<<cluster.points.size());
+    ROS_INFO_STREAM("Cluster size: "<<cluster.points.size());
     sensor_msgs::convertPointCloudToPointCloud2(cluster, *recent_cloud);
-    recent_cloud->header.frame_id="/camera_rgb_optical_frame";
+    recent_cloud->header.frame_id="/ur5_arm_kinect_rgb_optical_frame";
     recent_cloud->header.stamp=ros::Time::now();
-    //ROS_INFO_STREAM("Recent_cloud size: "<<recent_cloud->data.size());
+    ROS_INFO_STREAM("Recent_cloud size: "<<recent_cloud->data.size());
     input_clouds.push_back(recent_cloud);
     pcl::fromROSMsg(*recent_cloud, cloud);
-    //ROS_INFO_STREAM("Cloud size: "<<cloud.points.size());
-    clouds.push_back(cloud);
+    ROS_INFO_STREAM("Cloud size: "<<cloud.points.size());
+  }*/
 
-    ROS_INFO_STREAM("input_clouds at "<< j <<" has "<< input_clouds.at(j)->data.size() <<" points");
+  while (ros::ok())
+ {
+  for (int j=0; j<num_images_; j++)
+  {
+
+        cluster.points.clear();
+        //recent_cloud.reset();
+        //recent_cloud->data.clear();
+        //cloud->points.clear();
+
+    cloud.points.clear();
+    std::string topic = n.resolveName("cloud_in");
+    ROS_INFO("Cloud service called; waiting for a point_cloud2 on topic %s", topic.c_str());
+    sensor_msgs::PointCloud2::ConstPtr recent_cloud =
+        ros::topic::waitForMessage<sensor_msgs::PointCloud2>(topic);
+
+
+    pcl::fromROSMsg(*recent_cloud, cloud);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(cloud));
+    pcl::PassThrough<pcl::PointXYZRGB> pass_x;
+    pass_x.setInputCloud(cloud_ptr);
+    pass_x.setFilterFieldName("x");
+    pass_x.setFilterLimits(x_filter_min_, x_filter_max_);
+    pass_x.filter(xf_cloud);
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr f_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(xf_cloud));
+    pcl::PassThrough<pcl::PointXYZRGB> pass_y;
+    pass_y.setInputCloud(f_cloud_ptr);
+    pass_y.setFilterFieldName("z");
+    pass_y.setFilterLimits(y_filter_min_, y_filter_max_);
+    pass_y.filter(yf_cloud);
+
+    ROS_INFO_STREAM("Passthrough filtered cloud size: "<<yf_cloud.points.size());
+    clouds.push_back(yf_cloud);
+
+    //ROS_INFO_STREAM("input_clouds at "<< j <<" has "<< input_clouds.at(j)->data.size() <<" points");
 
   }
 
@@ -139,30 +189,57 @@ int main(int argc, char **argv)
   input_clouds.clear();
   clouds.clear();
 
+
+  //Use Bilateral Filter
+  //Bilateral filter is instantiated in pcl_flters only for pcl::PointXYZI and pcl::PointXYZINormal
+  ROS_INFO_STREAM("Beginning Bilateral Filtering");
+  pcl::copyPointCloud(*mls_filtered_cloud, *bilateral_pre_cloud);
+  if(use_bilateral_)
+  {
+    pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr tree (new pcl::KdTreeFLANN<pcl::PointXYZI>);
+    ROS_INFO_STREAM("Converted cloud to XYZI, and set up tree");
+    pcl::BilateralFilter<pcl::PointXYZI> bf;
+    bf.setInputCloud (bilateral_pre_cloud);
+    //bf.setSearchMethod (tree);
+    bf.setHalfSize (sigma_s_);
+    bf.setStdDev (sigma_r_);
+    bf.filter (*bilateral_filtered_cloud);
+    ROS_INFO_STREAM("Bilateral Filtering complete");
+  }
+
   //Remove outliers
-  pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor;
-  sor.setInputCloud(mls_filtered_cloud);
+  pcl::StatisticalOutlierRemoval<pcl::PointXYZI> sor;
+  if(use_bilateral_)
+  {
+    sor.setInputCloud(bilateral_filtered_cloud);
+  }
+  else
+  {
+    sor.setInputCloud(bilateral_pre_cloud);
+  }
   sor.setMeanK(mean_k_);
-  sor.setStddevMulThresh(1.0);
+  sor.setStddevMulThresh(mul_thresh_);
   sor.filter(*sor_filtered_cloud);
 
+
   // Create a publish-able cloud.
-  pcl::toROSMsg (*mls_filtered_cloud, out_cloud);
-  out_cloud.header.frame_id="/camera_rgb_optical_frame";
+  pcl::toROSMsg (*sor_filtered_cloud, out_cloud);
+  out_cloud.header.frame_id="/ur5_arm_kinect_rgb_optical_frame";
   out_cloud.header.stamp=ros::Time::now();
-  ROS_INFO_STREAM("Filtered cloud converted");
+  ROS_INFO_STREAM("Filtered cloud converted to ROS msg");
   // Publish the data
   pub.publish (out_cloud);
-  ROS_INFO_STREAM("Filtered cloud published");
-
+  ROS_INFO_STREAM("Filtered cloud published with "<<out_cloud.width<<" points");
+/*
   //Create .pcd file to store and compare later
   pcl::PCDWriter writer;
   std::stringstream fileName_ss, fileName2;
-  fileName_ss << "pcd_files/" << num_images_ << "_" << search_radius_*1000 << ".pcd";
-  writer.write(fileName_ss.str(), *mls_filtered_cloud);
-  ROS_INFO_STREAM("Saved " << mls_filtered_cloud->points.size() << " data points to " << fileName_ss.str());
+  fileName_ss << "pcd_files/" << num_images_ << "_" << search_radius_*1000 << "_intensity.pcd";
+  writer.write(fileName_ss.str(), *sor_filtered_cloud);
+  ROS_INFO_STREAM("Saved " << sor_filtered_cloud->points.size() << " data points to " << fileName_ss.str());
   fileName2 << "pcd_files/1.pcd";
   writer.write(fileName2.str(), cloud);
   ROS_INFO_STREAM("Saved " << cloud.points.size() << " data points to " << fileName2.str());
-  //}
+  */
+  }
 }

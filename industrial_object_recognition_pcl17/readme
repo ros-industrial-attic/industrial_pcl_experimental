@@ -1,0 +1,34 @@
+TO RUN THIS PERCEPTION DEMO
+
+1. You'll nee to have pcl17 installed somewhere in your ROS_PACKAGE_PATH
+	see: http://answers.ros.org/question/44821/updating-to-pcl-17-in-ros-fuerte/
+	or checkout http://svn.pointclouds.org/ros/branches/fuerte/perception_pcl_unstable/pcl17
+                and http://svn.pointclouds.org/ros/branches/fuerte/perception_pcl_unstable/pcl17_ros
+		within the pcl17 package, you'll need to change the Makefile document
+			line 120: 	-DBUILD_apps=ON \
+		and do a rosmake for each (pcl17 will take FOREVER)
+
+2. You'll need a solid model (.ply) of an object of interest
+	save the .ply file to a destination, and change recognition.launch "ply_model_path" accordingly
+
+3. There is a hard-coded string at the beginning of recognition_node.cpp - you will need to change this path
+	line 76: std::ofstream STATFILE_("/home/cgomez/ros/fuerte/swri-ros-pkg_trunk_recognition_testing/mantis/mantis_perception/data/meshes/demo_parts/pump1.csv");
+	line 76 example: std::ofstream STATFILE_("/home/user/Desktop/pump1.csv");
+
+4. Do a rosmake in indstrial_object_recognition_pcl17
+----------------------------------------------------------------------------------------------------
+Two options for running demo:
+OPTION 1
+checkout industrial_pcl_filters from the same stack (industrial_pcl)
+	Open 4 terminals:
+	Terminal 1: roslaunch industrial_object_recognition_pcl17 camera.launch
+	Terminal 2: rosrun rviz rviz
+	Terminal 3: roslaunch industrial_pcl_filters test_node.launch 
+	Terminal 4: roslaunch industrial_object_recognition_pcl17 recognition.launch 
+OPTION 2
+change recognition.launch param topic to "ur5_arm_kinect/depth_registered/points"
+	Open 3 terminals:
+	Terminal 1: roslaunch industrial_object_recognition_pcl17 camera.launch
+	Terminal 2: rosrun rviz rviz
+	Terminal 3: roslaunch industrial_object_recognition_pcl17 recognition.launch
+

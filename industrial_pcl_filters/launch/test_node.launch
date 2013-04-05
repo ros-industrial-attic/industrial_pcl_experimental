@@ -1,15 +1,25 @@
 <?xml version="1.0" ?>
 <launch>
 
-    <arg name="points_in" default="camera/depth_registered/points" />
+    <arg name="points_in" default="/ur5_arm_kinect/depth_registered/points" />
 
     <node pkg="industrial_pcl_filters" name="test_avg_concat_node" type="concatenate_average" output="screen">
 	<!--topic remapping-->
     <remap from="cloud_in" to="$(arg points_in)" />
 
-	<param name="mls_search_radius" value="0.004" />
-	<param name="num_images_concat" value="10" />
-	<param name="sor_mean" value="500" />
+    <rosparam>
+      x_filter_min: -0.3
+      x_filter_max: 0.3
+      y_filter_min: 1.0
+      y_filter_max: 1.4
+      mls_search_radius: 0.001
+      num_images_concat: 2
+      sor_mean: 20<!--statistical: the higher the number the more points are removed-->
+      sor_thresh: 1.0<!-- default 1.0 -->
+      use_bilateral: false <!--bilateral filter takes a loooooong time-->
+      simga_s: 0.9<!--Bilateral Filter- spatial: geometric spread, a large value blurs more-->
+      simga_r: 0.9<!--Bilateral Filter- intensity: photometric spread -->
+    </rosparam>
 
    </node>
 

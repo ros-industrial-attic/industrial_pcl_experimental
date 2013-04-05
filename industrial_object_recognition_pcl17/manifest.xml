@@ -1,0 +1,19 @@
+<package>
+  <description brief="industrial_object_recognition_pcl17">
+
+     industrial_object_recognition_pcl17
+
+  </description>
+  <author>Christina Gomez</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/industrial_object_recognition_pcl17</url>
+  <depend package="roscpp"/>
+  <depend package="pcl17"/>
+  <depend package="pcl17_ros"/>
+  <depend package="industrial_utils"/>
+  <depend package="industrial_pcl_filters"/>
+  
+</package>
+
+

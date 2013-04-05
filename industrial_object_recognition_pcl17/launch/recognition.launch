@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<launch>
+	<!-- launch-prefix="gdb -ex run -args" -->
+    <node pkg="industrial_object_recognition_pcl17" type="recognition_node" name="recognition" output="screen" >
+    	<param name="model_path" value="$(find mantis_perception)/data/meshes/sampled_parts/pump"/>
+        <param name="ply_model_path" value="$(find mantis_perception)/data/meshes/demo_parts"/>
+ <!--   	<param name="model_path" value="$(find mantis_perception)/data/meshes/sampled_parts"/>
+    	<rosparam param="model_list"> ["pump_model_new_7kp.pcd"] </rosparam>"pump_model_new_7kp.pcd", , "pvc_elbow_thin.pcd"
+    	<param name="model_ss" value="0.01" /> 		
+    	<param name="scene_ss" value="0.01" />
+    	<param name="descr_rad" value="0.02" />		
+    	<param name="cg_size" value="0.03" />
+    	<param name="cg_thresh" value="10" />
+    	<param name="descr_nn_thresh" value="0.3" /> -->
+    <rosparam>
+      topic: "avg_filtered_cloud"<!--ur5_arm_kinect/depth_registered/points-->
+      model_list: ["pump_model.ply"] <!-- CHANGED - used to be for pcd input, now for ply input, "pvc_elbow_thin.pcd"  mug_4kp.pcd, elec_enclosure_sampled.pcd-->
+      x_filter_min: -0.3
+      x_filter_max: 0.3
+      y_filter_min: 1.0
+      y_filter_max: 1.4
+      tesselation_level: 1
+      tess_view_angle: 50.0
+      use_SACICP: false <!-- perform registration via RANSAC/ICP, otherwise cluster correspondences via Hough or GC -->
+      use_hough: true <!-- if false, use geometric correspondence as clusterer -->
+      use_uniform_sampling: true<!-- if false, use SIFT as keypoint estimator -->
+      use_VFH: true <!-- if false, use SHOT as descriptor NEEDS TO BE TRUE FOR NOW -->
+      
+      descr_rad: 0.055 <!-- search radius for SHOT desc. estimator 0.02-->
+<!--The following are parameters for Uniform Sampling -->
+      model_ss: 0.003 <!-- k nearest search radius for uniform sampling 0.01 -->
+      scene_ss: 0.003 <!-- k nearest search radius for uniform sampling 0.01 -->
+<!--The following are parameters for SIFT -->
+      min_scale: 0.0005 <!--0.0005 must be strict positive-->
+      nr_octaves: 8 <!--4 must be at least 1-->
+      nr_scales_per_octave: 10 <!--5 must be at least 1-->
+      min_contrast: 0.0001 <!--1 must be non-negative-->
+<!--The following are parameters for both GC and Hough -->
+      cg_size: 0.095<!-- 0.02 Hough Bin Size (1.0) GC consensus resolution (1.0) (used in SACinlier)
+			According GC to paper, this is euclidean distance threshold, was set to 9.5 mm
+			Hough uses it to set reference frame search radius
+			Both use CorrespondenceRejectorSampleConsensus - Correspondences with distances below the threshold are considered as inliers - 0.05-->
+      cg_thresh: -1 <!-- Hough minimum # votes to infer presence of model (-1 assuming model is present) 
+			GC minimum cluster size (3), if consensus_set.size > cg_thresh, correspondences become model instance -->
+      descr_nn_thresh: 0.40 <!-- 0.25 SHOT descriptors by nature beteween 0.0-1.0, directly influences # correspondences found (bigger => more)-->
+      rf_radius: 0.075 <!-- 0.015 -->
+<!--The following are parameters for Registration via RANSAC and ICP -->
+           <!--For RANSAC Initial  Alignment-->
+      min_sample_distance: 0.0
+      max_corr_distance: 0.005
+      nr_iterations: 100
+           <!--For ICP alignment-->
+      <!--outlier_rejection_threshold: -->
+      transformation_epsilon: 0.0
+      max_iterations: 15000
+    </rosparam>
+    </node>
+    
+    
+</launch>

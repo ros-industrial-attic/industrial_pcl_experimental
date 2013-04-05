@@ -20,7 +20,7 @@
  *      Author: cgomez
  */
 
-#include "concatenate_mls.h"
+#include "industrial_pcl_filters/concatenate_mls.h"
 #include <pcl/point_types.h>
 #include <pcl/surface/processing.h>
 #include <pcl/surface/mls.h>
@@ -80,13 +80,14 @@ void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &out
   cloud_=temp_concat_cloud_;
   mls_.setOutputNormals(normals_);
   mls_.setInputCloud(cloud_);
-  //mls_.setInputCloud(input_);
+  mls_.setPolynomialOrder(3);
   mls_.setPolynomialFit (true);
   mls_.setSearchMethod (tree_);
   mls_.setSearchRadius (search_radius_);
 
   mls_.reconstruct(output);
 
+  output=*cloud_;
   ROS_INFO_STREAM("cloud after MLS has "<<output.size() <<" points");
 
   input_clouds_.clear();
