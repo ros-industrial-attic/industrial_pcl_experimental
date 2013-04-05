@@ -1,12 +1,10 @@
 TO RUN THIS PERCEPTION DEMO
 
 1. You'll nee to have pcl17 installed somewhere in your ROS_PACKAGE_PATH
-	see: http://answers.ros.org/question/44821/updating-to-pcl-17-in-ros-fuerte/
-	or checkout http://svn.pointclouds.org/ros/branches/fuerte/perception_pcl_unstable/pcl17
-                and http://svn.pointclouds.org/ros/branches/fuerte/perception_pcl_unstable/pcl17_ros
+	1a. svn or git checkout: https://github.com/ros-perception/perception_pcl/tree/fuerte-unstable-devel
 		within the pcl17 package, you'll need to change the Makefile document
 			line 120: 	-DBUILD_apps=ON \
-		and do a rosmake for each (pcl17 will take FOREVER)
+		and do a rosmake for pcl17 and pcl17_ros (pcl17 will take FOREVER)
 
 2. You'll need a solid model (.ply) of an object of interest
 	save the .ply file to a destination, and change recognition.launch "ply_model_path" accordingly
