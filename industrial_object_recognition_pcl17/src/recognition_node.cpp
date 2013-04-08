@@ -163,6 +163,7 @@ public:
   int max_iterations_;//for ICP
   int tesselation_level_;//for render tesselated sphere to generate training data viewpoints
   double tess_view_angle_;//for render tesselated sphere to generate training data viewpoints - camera angle
+  double tess_radius_sphere_;//for render tesselated sphere to generate training data viewpoints - radius of tesselations sphere
 
   //Pre-processing parameters
   std::string topic_;//topic for input cloud
@@ -249,6 +250,7 @@ public:
     priv_nh_.getParam("y_filter_max", y_filter_max_);
     priv_nh_.getParam("tesselation_level", tesselation_level_);
     priv_nh_.getParam("tess_view_angle", tess_view_angle_);
+    priv_nh_.getParam("tess_radius_sphere", tess_radius_sphere_);
     priv_nh_.getParam("topic", topic_);
     priv_nh_.getParam("sor_mean", sor_mean_);
     priv_nh_.getParam("sor_thresh", sor_thresh_);
@@ -264,6 +266,8 @@ public:
     ROS_INFO_STREAM("Using Hough for clustering: " << use_hough_);
     ROS_INFO_STREAM("Using Uniform Sampling for keypoints: " << use_uniform_sampling_);
     ROS_INFO_STREAM("RF radius: " << rf_rad_);
+    ROS_INFO_STREAM("Tesselation view angle: " << tess_view_angle_);
+    ROS_INFO_STREAM("Tesselation radius: " << tess_radius_sphere_);
 
     //std::string stats_file = ply_model_path_ + "/mug.csv";
     //ROS_INFO_STREAM("Statistics file name: "<<stats_file.c_str());
@@ -373,9 +377,12 @@ public:
     reader->SetFileName(filename.c_str());
     mapper->SetInputConnection(reader->GetOutputPort());
     mapper->Update();
-    render_views.addModelFromPolyData(mapper->GetInput());
+    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+    polydata->Allocate(mapper->GetInput());
+    render_views.addModelFromPolyData(polydata);
     render_views.setTesselationLevel(tesselation_level_);
     render_views.setViewAngle(tess_view_angle_);
+    render_views.setRadiusSphere(tess_radius_sphere_);
     render_views.generateViews();
     render_views.getViews(views);
     render_views.getPoses(poses_);
