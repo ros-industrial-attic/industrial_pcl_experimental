@@ -5,10 +5,12 @@ TO RUN THIS PERCEPTION DEMO
 1. Check out this code/repository
 
 2. You'll nee to have pcl17 installed somewhere in your ROS_PACKAGE_PATH
-	1a. svn or git checkout: https://github.com/ros-perception/perception_pcl/tree/fuerte-unstable-devel
+	2a. svn or git checkout: https://github.com/ros-perception/perception_pcl/tree/fuerte-unstable-devel
+	(git clone https://github.com/ros-perception/perception_pcl.git -b fuerte-unstable-devel pcl_branch)
 		within the pcl17 package, you'll need to change the Makefile document
 			line 120: 	-DBUILD_apps=ON \
 		and do a rosmake for pcl17 and pcl17_ros (pcl17 will take FOREVER)
+		(note: my rosmake crashed in pcl17, so I had to do a regular make)
 
 3. Make sure you have the ros-industrial package "industrial_utils" installed/checked out.
 
@@ -25,13 +27,13 @@ TO RUN THIS PERCEPTION DEMO
 ----------------------------------------------------------------------------------------------------
 Two options for running demo:
 OPTION 1
-change recognition.launch param topic to "ur5_arm_kinect/depth_registered/points"
 	Open 3 terminals:
 	Terminal 1: roslaunch industrial_object_recognition_pcl17 camera.launch
 	Terminal 2: rosrun rviz rviz
 	Terminal 3: roslaunch industrial_object_recognition_pcl17 recognition.launch
 OPTION 2
 checkout industrial_pcl_filters from the same stack (industrial_pcl)
+change recognition.launch param topic to "avg_filtered_cloud"
 	Open 4 terminals:
 	Terminal 1: roslaunch industrial_object_recognition_pcl17 camera.launch
 	Terminal 2: rosrun rviz rviz

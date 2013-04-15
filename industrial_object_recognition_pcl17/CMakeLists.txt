@@ -35,8 +35,8 @@ include_directories(/usr/include/vtk-5.8)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
-
-rosbuild_add_executable(recognition_node 
-						src/recognition_node.cpp)
-target_link_libraries(recognition_node ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkIO.so)
+rosbuild_add_executable(recognition_node src/recognition_node.cpp)
+rosbuild_add_executable(recognition_service src/recognition_service.cpp)
+target_link_libraries(recognition_node ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkIO.so libvtkGraphics.so)
+target_link_libraries(recognition_service ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkIO.so)
 

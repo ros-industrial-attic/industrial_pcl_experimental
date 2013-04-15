@@ -177,6 +177,19 @@ recognition_node/fast:
 .PHONY : recognition_node/fast
 
 #=============================================================================
+# Target rules for targets named recognition_service
+
+# Build rule for target.
+recognition_service: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 recognition_service
+.PHONY : recognition_service
+
+# fast build rule for target.
+recognition_service/fast:
+	$(MAKE) -f CMakeFiles/recognition_service.dir/build.make CMakeFiles/recognition_service.dir/build
+.PHONY : recognition_service/fast
+
+#=============================================================================
 # Target rules for targets named rosbuild_precompile
 
 # Build rule for target.
@@ -321,6 +334,21 @@ src/recognition_node.s:
 	$(MAKE) -f CMakeFiles/recognition_node.dir/build.make CMakeFiles/recognition_node.dir/src/recognition_node.s
 .PHONY : src/recognition_node.s
 
+# target to build an object file
+src/recognition_service.o:
+	$(MAKE) -f CMakeFiles/recognition_service.dir/build.make CMakeFiles/recognition_service.dir/src/recognition_service.o
+.PHONY : src/recognition_service.o
+
+# target to preprocess a source file
+src/recognition_service.i:
+	$(MAKE) -f CMakeFiles/recognition_service.dir/build.make CMakeFiles/recognition_service.dir/src/recognition_service.i
+.PHONY : src/recognition_service.i
+
+# target to generate assembly for a file
+src/recognition_service.s:
+	$(MAKE) -f CMakeFiles/recognition_service.dir/build.make CMakeFiles/recognition_service.dir/src/recognition_service.s
+.PHONY : src/recognition_service.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -335,6 +363,7 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... recognition_node"
+	@echo "... recognition_service"
 	@echo "... rosbuild_precompile"
 	@echo "... rosbuild_premsgsrvgen"
 	@echo "... rospack_genmsg"
@@ -348,6 +377,9 @@ help:
 	@echo "... src/recognition_node.o"
 	@echo "... src/recognition_node.i"
 	@echo "... src/recognition_node.s"
+	@echo "... src/recognition_service.o"
+	@echo "... src/recognition_service.i"
+	@echo "... src/recognition_service.s"
 .PHONY : help
 
 
