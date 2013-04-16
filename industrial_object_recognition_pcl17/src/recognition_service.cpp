@@ -138,6 +138,7 @@ public:
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
   tf::Transform part_pose_;
   tf::Transform gripper_pose_;
+  float part_rot_;
 
   pcl17::PointCloud<Descriptor1Type>::Ptr all_descriptors1_;
   pcl17::PointCloud<Descriptor2Type>::Ptr all_descriptors2_;
@@ -989,6 +990,15 @@ public:
         ros::Duration publish_total = publish_finish - publish_start;
         ROS_INFO_STREAM("Calculating and publishing cloud and pose took "<< publish_total<<" s");
 
+        //CHECK ANGLE OF POSE TO SEE IF CLOSE TO VERTICAL
+        tf::Vector3 world_x_vect(1.0f,0.0f, 0.0f);
+        tf::Matrix3x3 part_rot;
+        part_rot=part_pose_.getBasis();
+        tf::Vector3 part_x_vect=part_rot.getColumn(0);
+
+        part_rot_ = part_x_vect.angle(world_x_vect);
+        ROS_INFO_STREAM("Angle between x component of part pose and x in world frame: " << part_rot_*180/3.14159);
+
         if (diff_from_vert < 15)
         {
           geometry_msgs::Pose grip_pose_msg;
@@ -1233,6 +1243,10 @@ public:
           gm_pose.header.stamp=ros::Time::now();
 
           main_response.pick_poses.push_back(gm_pose);
+          main_response.pose.x=gm_trans.translation.x;
+          main_response.pose.y=gm_trans.translation.y;
+          main_response.pose.z=gm_trans.translation.z;
+          main_response.pose.rotation=part_rot_;
         }
         ros::Time rec_total_finish = ros::Time::now();
         ros::Duration rec_total = rec_total_finish - rec_total_start;
