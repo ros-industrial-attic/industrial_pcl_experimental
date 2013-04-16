@@ -238,12 +238,16 @@ public:
     priv_nh_.getParam("model_name", model_name_);
     priv_nh_.getParam("model_ss", model_ss_);
     priv_nh_.getParam("scene_ss", scene_ss_);
-    priv_nh_.getParam("descr_rad", descr_rad_);
-    priv_nh_.getParam("cg_size", cg_size_);
+    //priv_nh_.getParam("descr_rad", descr_rad_);
+    priv_nh_.getParamCached("descr_rad", descr_rad_);
+    //priv_nh_.getParam("cg_size", cg_size_);
+    priv_nh_.getParamCached("cg_size", cg_size_);
     priv_nh_.getParam("cg_thresh", cg_thresh_);
-    priv_nh_.getParam("descr_nn_thresh", descr_nn_thresh_);
+    //priv_nh_.getParam("descr_nn_thresh", descr_nn_thresh_);
+    priv_nh_.getParamCached("descr_nn_thresh", descr_nn_thresh_);
     priv_nh_.getParam("use_hough", use_hough_);
-    priv_nh_.getParam("rf_radius", rf_rad_);
+    //priv_nh_.getParam("rf_radius", rf_rad_);
+    priv_nh_.getParamCached("rf_radius", rf_rad_);
     priv_nh_.getParam("use_SACICP", use_SACICP_);
     priv_nh_.getParam("use_uniform_sampling", use_uniform_sampling_);
     priv_nh_.getParam("use_VFH", use_VFH_);
@@ -538,6 +542,7 @@ public:
       pcl17::PointCloud<PointType>::Ptr keypoints_ptr(new pcl17::PointCloud<PointType>(data.keypoints_));
 
       pcl17::SHOTEstimationOMP<PointType, NormalType, Descriptor1Type> descr_est;
+      priv_nh_.getParamCached("descr_rad", descr_rad_);
       descr_est.setRadiusSearch(descr_rad_);
 
       descr_est.setInputCloud(keypoints_ptr);
@@ -704,6 +709,7 @@ public:
       pcl17::PointCloud<Descriptor1Type>::Ptr model_shot_descriptors_ptr(
            new pcl17::PointCloud<Descriptor1Type>(rec.model_data_.descriptors1_));
       shot_match_search.setInputCloud(model_shot_descriptors_ptr);
+      priv_nh_.getParamCached("descr_nn_thresh", descr_nn_thresh_);
       //  For each scene keypoint descriptor, find nearest neighbor into the model keypoints descriptor cloud and add it to the correspondences vector.
       for (size_t i = 0; i < rec.rec_data_.scene_.descriptors1_.size(); ++i)
       {
@@ -744,6 +750,7 @@ public:
       if(use_hough_)
       {
         ros::Time hough_start = ros::Time::now();
+        priv_nh_.getParamCached("rf_radius", rf_rad_);
         pcl17::PointCloud<RFType>::Ptr model_rf (new pcl17::PointCloud<RFType> ());
         pcl17::PointCloud<RFType>::Ptr scene_rf (new pcl17::PointCloud<RFType> ());
         pcl17::BOARDLocalReferenceFrameEstimation<PointType, NormalType, RFType> rf_est;
@@ -760,6 +767,7 @@ public:
         rf_est.setSearchSurface (scene_pt_ptr);
         rf_est.compute (*scene_rf);
 
+        priv_nh_.getParamCached("cg_size", cg_size_);
         rec.rec_data_.h_clusterer_.setHoughBinSize (cg_size_);
         rec.rec_data_.h_clusterer_.setHoughThreshold (cg_thresh_);
         rec.rec_data_.h_clusterer_.setUseInterpolation (true);
@@ -823,6 +831,7 @@ public:
       }
       else
       {
+
         rec.rec_data_.gc_clusterer_.setInputCloud(model_kp_ptr);
         rec.rec_data_.gc_clusterer_.setSceneCloud(scene_kp_ptr);
         rec.rec_data_.gc_clusterer_.setModelSceneCorrespondences(model_scene_corrs);
