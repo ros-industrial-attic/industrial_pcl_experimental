@@ -178,6 +178,8 @@ public:
   double x_filter_max_;//for filtering input cloud, passthrough filter
   double y_filter_min_;//for filtering input cloud, passthrough filter
   double y_filter_max_;//for filtering input cloud, passthrough filter
+  double z_filter_min_;//for filtering input cloud, passthrough filter
+  double z_filter_max_;//for filtering input cloud, passthrough filter
   double x_ee_offset_;
   double y_ee_offset_;
   double z_ee_offset_;
@@ -193,7 +195,7 @@ public:
       nr_scales_per_octave_(5), min_contrast_(1), use_VFH_(true), use_SACICP_(true),
       min_sample_distance_(0.0), nr_iterations_(3), transformation_epsilon_(0.0),
       max_iterations_(1000), max_corr_distance_(0.05), x_filter_min_(-1.0),
-      x_filter_max_(1.0), y_filter_min_(-1.0), y_filter_max_(1.0),
+      x_filter_max_(1.0), y_filter_min_(-1.0), y_filter_max_(1.0), z_filter_min_(-1.0), z_filter_max_(1.0),
       tesselation_level_(1), tess_view_angle_(60.0), sor_mean_(10), sor_thresh_(1.0),
       num_images_(1)
   {
@@ -236,6 +238,7 @@ public:
 
     priv_nh_.getParam("world_frame", world_frame_);
     priv_nh_.getParam("model_name", model_name_);
+    priv_nh_.getParam("model_path", model_path_);
     priv_nh_.getParam("model_ss", model_ss_);
     priv_nh_.getParam("scene_ss", scene_ss_);
     //priv_nh_.getParam("descr_rad", descr_rad_);
@@ -264,6 +267,8 @@ public:
     priv_nh_.getParam("x_filter_max", x_filter_max_);
     priv_nh_.getParam("y_filter_min", y_filter_min_);
     priv_nh_.getParam("y_filter_max", y_filter_max_);
+    priv_nh_.getParam("z_filter_min", z_filter_min_);
+    priv_nh_.getParam("z_filter_max", z_filter_max_);
     priv_nh_.getParam("x_ee_offset", x_ee_offset_);
     priv_nh_.getParam("y_ee_offset", y_ee_offset_);
     priv_nh_.getParam("z_ee_offset", z_ee_offset_);
@@ -1177,20 +1182,36 @@ public:
       pcl17::PointCloud<PointType> cloud;
       pcl17::PointCloud<PointType> xf_cloud;
       pcl17::PointCloud<PointType> yf_cloud;
+      pcl17::PointCloud<PointType> zf_cloud;
 
       ROS_INFO("Cloud service called; waiting for a point_cloud2 on topic %s", topic.c_str());
       sensor_msgs::PointCloud2::ConstPtr recent_cloud =
           ros::topic::waitForMessage<sensor_msgs::PointCloud2>(topic, nh_);
+/*
+      std::string filename = model_path_ + "/test_scene.pcd";
+      pcl17::PointCloud<PointType> obj_points;
+
+      ROS_INFO_STREAM("Loading cloud data from " << filename);
+      if (pcl17::io::loadPCDFile(filename, obj_points) < 0)
+      {
+        ROS_ERROR_STREAM("Error loading model: " << filename);
+        continue;
+      }
+      ROS_INFO_STREAM( "Loaded model: mug_view1.pcd with " << obj_points.size() << " points");*/
+      //object_pub_.publish(recent_cloud);
+      //pcl17::fromROSMsg(*recent_cloud, obj_points);
 
       sensor_msgs::PointCloud old_cloud;
       sensor_msgs::PointCloud2 transformed_cloud;
       std::string processing_frame = world_frame_;
 
       pcl17::fromROSMsg(*recent_cloud, cloud);
+      //cloud = obj_points;
       tf::TransformListener tf_listener;
       tf::StampedTransform sceneTf; sceneTf.setIdentity();
+      //std::string clusterFrameId = "/kinect_rgb_optical_frame";
       std::string clusterFrameId = recent_cloud->header.frame_id;
-      ROS_INFO_STREAM("Cloud passed to recognition service with frame id: "<<recent_cloud->header.frame_id);
+      ROS_INFO_STREAM("Cloud passed to recognition service with frame id: "<<clusterFrameId);
       try
       {
         tf_listener.waitForTransform(processing_frame, clusterFrameId, ros::Time::now(), ros::Duration(1.0));
@@ -1211,6 +1232,7 @@ public:
       tf::TransformTFToEigen(sceneTf,tfEigen_scene);//clusterTf from ClusterFrame to WorldFrame
       pcl17::transformPointCloud(cloud,transformed_scene,Eigen::Affine3f(tfEigen_scene));
 
+
       //Passthrough filters
       pcl17::PointCloud<PointType>::Ptr cloud_ptr(new pcl17::PointCloud<PointType>(transformed_scene));
       pcl17::PassThrough<pcl17::PointXYZ> pass_x;
@@ -1226,18 +1248,38 @@ public:
       pass_y.setFilterLimits(y_filter_min_, y_filter_max_);
       pass_y.filter(yf_cloud);
 
+      pcl17::PointCloud<PointType>::Ptr fil_cloud_ptr(new pcl17::PointCloud<PointType>(yf_cloud));
+      pcl17::PassThrough<pcl17::PointXYZ> pass_z;
+      pass_z.setInputCloud(fil_cloud_ptr);
+      pass_z.setFilterFieldName("z");
+      pass_z.setFilterLimits(z_filter_min_, z_filter_max_);
+      pass_z.filter(zf_cloud);
+
+      pcl17::StatisticalOutlierRemoval<pcl17::PointXYZI> sor;
+      pcl17::PointCloud<pcl17::PointXYZI>::Ptr pre_cloud (new pcl17::PointCloud<pcl17::PointXYZI>);
+      pcl17::PointCloud<pcl17::PointXYZI> filtered_cloud;
+      pcl17::PointCloud<pcl17::PointXYZ> f_cloud;
+      pcl17::copyPointCloud(zf_cloud, *pre_cloud);
+      sor.setInputCloud(pre_cloud);
+      sor.setMeanK(20);
+      sor.setStddevMulThresh(1.0);
+      sor.filter(filtered_cloud);
+      pcl17::copyPointCloud(filtered_cloud, f_cloud);
+
       sensor_msgs::PointCloud2::Ptr pc2_cloud (new sensor_msgs::PointCloud2);
-      pcl17::toROSMsg(yf_cloud, *pc2_cloud);
+      pcl17::toROSMsg(f_cloud, *pc2_cloud);
       pc2_cloud->header.frame_id=world_frame_;
       pc2_cloud->header.stamp=ros::Time::now();
       object_pub_.publish(pc2_cloud);
 
-      if (yf_cloud.size()!=0)
+      if (filtered_cloud.size()!=0)
       {
         ros::Time rec_total_start = ros::Time::now();
 
         //if recognize returns true, continue
-        acceptable_pose = recognize(yf_cloud);
+        acceptable_pose = recognize(f_cloud);
+        //acceptable_pose = recognize(yf_cloud);
+        //acceptable_pose = recognize(transformed_scene);
 
         if (acceptable_pose)
         {

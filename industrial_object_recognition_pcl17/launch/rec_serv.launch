@@ -2,7 +2,7 @@
 <launch>
 	<!-- launch-prefix="gdb -ex run -args" -->
     <node pkg="industrial_object_recognition_pcl17" type="recognition_service" name="recognition_srv" output="screen" >
-    	<param name="model_path" value="$(find mantis_perception)/data/meshes/sampled_parts/pump"/>
+    	<param name="model_path" value="$(find mantis_perception)/data/meshes/sampled_parts"/>
         <param name="ply_model_path" value="$(find mantis_perception)/data/meshes/demo_parts"/>
  <!--   	<param name="model_path" value="$(find mantis_perception)/data/meshes/sampled_parts"/>
     	<rosparam param="model_list"> ["pump_model_new_7kp.pcd"] </rosparam>"pump_model_new_7kp.pcd", , "pvc_elbow_thin.pcd"
@@ -20,6 +20,8 @@
       x_filter_max: 0.7
       y_filter_min: -0.3
       y_filter_max: 0.3
+      z_filter_min: 0.05
+      z_filter_max: 1.0
       x_ee_offset: 0.000 <!--offsets x,y,z are in world_frame-->
       y_ee_offset: 0.010
       z_ee_offset: 0.010
