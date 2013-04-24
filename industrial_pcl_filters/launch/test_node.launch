@@ -8,10 +8,11 @@
     <remap from="cloud_in" to="$(arg points_in)" />
 
     <rosparam>
-      x_filter_min: -0.3
-      x_filter_max: 0.3
-      y_filter_min: 1.0
-      y_filter_max: 1.4
+      world_frame: "/workcell_frame"
+      x_filter_min: -1.05 <!--passthrough filter limits x,y are in world_frame-->
+      x_filter_max: -0.3
+      y_filter_min: 0.10
+      y_filter_max: 0.65
       mls_search_radius: 0.001
       num_images_concat: 2
       sor_mean: 20<!--statistical: the higher the number the more points are removed-->

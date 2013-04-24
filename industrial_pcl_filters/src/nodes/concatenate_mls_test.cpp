@@ -28,11 +28,17 @@
 #include <pcl/filters/bilateral.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/common/transforms.h> 
 #include <tabletop_object_detector/TabletopSegmentation.h>
 
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud_conversion.h>
+
+#include <tf/transform_datatypes.h>
+#include <tf/transform_listener.h>
+#include <tf_conversions/tf_eigen.h>
+
 /*------------------------------------------------------------------------------
  * main()
  * Main function to set up ROS node.
@@ -43,7 +49,7 @@ int main(int argc, char **argv)
   // Set up ROS.
   ros::init(argc, argv, "concatenate_average");
   ros::NodeHandle n;
-  ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("avg_filtered_cloud", 100);
+  ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("ur5_arm/avg_filtered_cloud", 100);
   ros::ServiceClient seg_srv_ = n.serviceClient<tabletop_object_detector::TabletopSegmentation>("ur5_arm/tabletop_segmentation", true);
   ROS_INFO_STREAM("Initialized concatenating and MLS averaging node");
 
@@ -59,6 +65,7 @@ int main(int argc, char **argv)
   double x_filter_max_;
   double y_filter_min_;
   double y_filter_max_;
+  std::string world_frame_;
 
   // Initialize node parameters from launch file or command line.
   // Use a private node handle so that multiple instances of the node can be run simultaneously
@@ -76,6 +83,7 @@ int main(int argc, char **argv)
   private_nh_.param("x_filter_max", x_filter_max_, double(1.0));
   private_nh_.param("y_filter_min", y_filter_min_, double(-1.0));
   private_nh_.param("y_filter_max", y_filter_max_, double(1.0));
+  private_nh_.getParam("world_frame", world_frame_);
 
   //Declare all types of clouds used
   //sensor_msgs::PointCloud2::ConstPtr recent_cloud (new sensor_msgs::PointCloud2);
@@ -157,9 +165,41 @@ int main(int argc, char **argv)
     sensor_msgs::PointCloud2::ConstPtr recent_cloud =
         ros::topic::waitForMessage<sensor_msgs::PointCloud2>(topic);
 
+      sensor_msgs::PointCloud old_cloud;
+      sensor_msgs::PointCloud2 transformed_cloud;
+      std::string processing_frame = world_frame_;
 
-    pcl::fromROSMsg(*recent_cloud, cloud);
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(cloud));
+      pcl::fromROSMsg(*recent_cloud, cloud);
+      //cloud = obj_points;
+      tf::TransformListener tf_listener;
+      tf::StampedTransform sceneTf; sceneTf.setIdentity();
+      //std::string clusterFrameId = "/kinect_rgb_optical_frame";
+      std::string clusterFrameId = recent_cloud->header.frame_id;
+      ROS_INFO_STREAM("Cloud passed to recognition service with frame id: "<<clusterFrameId);
+      try
+      {
+        tf_listener.waitForTransform(processing_frame, clusterFrameId, ros::Time::now(), ros::Duration(1.0));
+        tf_listener.lookupTransform(processing_frame ,clusterFrameId, ros::Time(0),sceneTf);
+        ROS_INFO_STREAM("Successfully received sceneTF on tf_listener for "<< clusterFrameId << " to "<< processing_frame);
+      }
+      catch(tf::TransformException ex)
+      {
+              ROS_ERROR("%s",std::string("Failed to resolve transform from " +
+                              processing_frame + " to " + clusterFrameId + " \n\t\t" + " tf error msg: " +  ex.what()).c_str());
+              ROS_WARN("%s",std::string("Will use Identity as cluster transform").c_str());
+              sceneTf.setData(tf::Transform::getIdentity());
+              return false;
+      }
+
+      pcl::PointCloud<pcl::PointXYZRGB> transformed_scene;
+      Eigen::Affine3d tfEigen_scene;
+      tf::TransformTFToEigen(sceneTf,tfEigen_scene);//clusterTf from ClusterFrame to WorldFrame
+      pcl::transformPointCloud(cloud,transformed_scene,Eigen::Affine3f(tfEigen_scene));
+
+
+
+    //pcl::fromROSMsg(*recent_cloud, cloud);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(transformed_scene));
     pcl::PassThrough<pcl::PointXYZRGB> pass_x;
     pass_x.setInputCloud(cloud_ptr);
     pass_x.setFilterFieldName("x");
@@ -169,7 +209,7 @@ int main(int argc, char **argv)
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr f_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(xf_cloud));
     pcl::PassThrough<pcl::PointXYZRGB> pass_y;
     pass_y.setInputCloud(f_cloud_ptr);
-    pass_y.setFilterFieldName("z");
+    pass_y.setFilterFieldName("y");
     pass_y.setFilterLimits(y_filter_min_, y_filter_max_);
     pass_y.filter(yf_cloud);
 
@@ -224,7 +264,7 @@ int main(int argc, char **argv)
 
   // Create a publish-able cloud.
   pcl::toROSMsg (*sor_filtered_cloud, out_cloud);
-  out_cloud.header.frame_id="/ur5_arm_kinect_rgb_optical_frame";
+  out_cloud.header.frame_id=world_frame_;
   out_cloud.header.stamp=ros::Time::now();
   ROS_INFO_STREAM("Filtered cloud converted to ROS msg");
   // Publish the data
