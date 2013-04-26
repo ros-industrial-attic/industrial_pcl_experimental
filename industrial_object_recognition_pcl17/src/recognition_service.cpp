@@ -199,7 +199,7 @@ public:
       max_iterations_(1000), max_corr_distance_(0.05), x_filter_min_(-1.0),
       x_filter_max_(1.0), y_filter_min_(-1.0), y_filter_max_(1.0), z_filter_min_(-1.0), z_filter_max_(1.0),
       tesselation_level_(1), tess_view_angle_(60.0), sor_mean_(10), sor_thresh_(1.0),
-      num_images_(1)
+      num_images_(1), sample_number_(0)
   {
     //tabletop_seg_client_ = nh_.serviceClient<tabletop_object_detector::TabletopSegmentation>(TABLETOP_SEGMENTATION);
 
@@ -280,6 +280,8 @@ public:
     priv_nh_.getParam("sor_mean", sor_mean_);
     priv_nh_.getParam("sor_thresh", sor_thresh_);
     priv_nh_.getParam("num_images", num_images_);
+    priv_nh_.getParam("last_sample_number", sample_number_);
+
 
     ROS_INFO("--- Recognition Parameters ---");
     ROS_INFO_STREAM("model_ss: " << model_ss_);
