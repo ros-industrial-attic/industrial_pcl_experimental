@@ -77,6 +77,7 @@ typedef pcl17::SHOT352 Descriptor1Type;
 typedef pcl17::VFHSignature308 Descriptor2Type;
 
 const std::string TABLETOP_SEGMENTATION = "ur5_arm/tabletop_segmentation";
+std::ofstream STATFILE_("/home/jnicho/Desktop/pose_measurements.csv");
 
 // Internal classes for organizing data
 class CloudData
@@ -139,6 +140,7 @@ public:
   tf::Transform part_pose_;
   tf::Transform gripper_pose_;
   float part_rot_;
+  int sample_number_;
 
   pcl17::PointCloud<Descriptor1Type>::Ptr all_descriptors1_;
   pcl17::PointCloud<Descriptor2Type>::Ptr all_descriptors2_;
@@ -289,6 +291,17 @@ public:
     ROS_INFO_STREAM("Using Hough for clustering: " << use_hough_);
     ROS_INFO_STREAM("Using Uniform Sampling for keypoints: " << use_uniform_sampling_);
     ROS_INFO_STREAM("RF radius: " << rf_rad_);
+
+    if (STATFILE_.is_open())
+      {
+        STATFILE_ << "TF(1 1), TF(1 2), TF(1 3), TF(2 1), TF(2 2), TF(2 3), "
+            "TF(3 1), TF(3 2), TF(3 3),  TF(4 1), TF(4 2), TF(4 3)   \n";
+      }
+    else
+      {
+        ROS_INFO_STREAM("Unable to open file");
+        return false;
+      }
 
     if (!initRecognizers())
     {
@@ -1013,7 +1026,7 @@ public:
         part_rot_ = part_x_vect.angle(world_x_vect);
         ROS_INFO_STREAM("Angle between x component of part pose and x in world frame: " << part_rot_*180/3.14159);
 
-        if (diff_from_vert < 15)
+        if (diff_from_vert < 10)
         {
           geometry_msgs::Pose grip_pose_msg;
           tf::poseTFToMsg(gripper_pose_, grip_pose_msg);
@@ -1283,6 +1296,7 @@ public:
 
         if (acceptable_pose)
         {
+          sample_number_++;
           main_response.label="pump";
           geometry_msgs::PoseStamped gm_pose;
           geometry_msgs::Transform gm_trans;
@@ -1298,6 +1312,36 @@ public:
           main_response.pose.y=gm_trans.translation.y;
           main_response.pose.z=gm_trans.translation.z;
           main_response.pose.rotation=part_rot_;
+          tf::TransformDoubleData tf_dd;
+		  part_pose_.serialize(tf_dd);
+		  //tf_dd.m_basis[1,1];
+		  ROS_INFO_STREAM("Part-pose "<<tf_dd.m_basis.m_el[1].m_floats[1]);
+	      STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[1]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[2]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[3]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[4]<< ',' ;
+
+	      STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[1]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[2]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[3]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[4]<< ',' ;
+
+	      STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[1]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[2]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[3]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[4]<< ',' ;
+
+	      STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[1]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[2]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[3]<< ',' ;
+	      STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[4]<< ',' ;
+
+	      STATFILE_<<tf_dd.m_origin.m_floats[1]<< ',' ;
+	      STATFILE_<<tf_dd.m_origin.m_floats[2]<< ',' ;
+	      STATFILE_<<tf_dd.m_origin.m_floats[3]<< ',' ;
+	      STATFILE_<<tf_dd.m_origin.m_floats[4]<< ',' ;
+	      ROS_INFO_STREAM("Sample Number: "<<sample_number_);
+	      STATFILE_<<sample_number_<<endl;
         }
         ros::Time rec_total_finish = ros::Time::now();
         ros::Duration rec_total = rec_total_finish - rec_total_start;
@@ -1321,6 +1365,7 @@ public:
     ROS_INFO_STREAM("Recognition Service initialized and waiting to be called");
     recognition_server_ = nh_.advertiseService("/mantis_object_recognition",
                                                   &RecognitionNode::rec_CB, this);
+    sample_number_=0;
     ros::spin();
   }
 };//end class RecognitionNode
