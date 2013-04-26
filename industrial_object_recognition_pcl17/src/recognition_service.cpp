@@ -294,8 +294,8 @@ public:
 
     if (STATFILE_.is_open())
       {
-        STATFILE_ << "TF(1 1), TF(1 2), TF(1 3), TF(2 1), TF(2 2), TF(2 3), "
-            "TF(3 1), TF(3 2), TF(3 3),  TF(4 1), TF(4 2), TF(4 3)   \n";
+        STATFILE_ << "TF(0 0), TF(1 0), TF(2 0), TF(0 1), TF(1 1), TF(2 1), "
+            "TF(0 2), TF(1 2), TF(2 2),  TF(0 3), TF(1 3), TF(2 3)  \n";
       }
     else
       {
@@ -989,6 +989,14 @@ public:
         gripper_pose_.setIdentity();
         tf::Vector3 part_pose_xy = part_pose_.getOrigin();
         gripper_pose_.setOrigin(tf::Vector3(part_pose_xy.x(), part_pose_xy.y(), 0.080));
+        tf::Quaternion grip_q;
+        tf::Quaternion part_q = part_pose_.getRotation();
+        tf::Matrix3x3 part_r, grip_r;
+        part_r.setRotation(part_q);
+        tf::Vector3 x_v_p=part_r.getColumn(0);
+        grip_r.setValue(x_v_p.x(), 0, 0, x_v_p.y(), 1, 0, x_v_p.z(), 0, -1);
+        grip_r.getRotation(grip_q);
+        gripper_pose_.setRotation(grip_q);
 
         tf::Transform tf_trans_ee;
         tf_trans_ee.setIdentity();
@@ -1313,35 +1321,30 @@ public:
           main_response.pose.z=gm_trans.translation.z;
           main_response.pose.rotation=part_rot_;
           tf::TransformDoubleData tf_dd;
-		  part_pose_.serialize(tf_dd);
-		  //tf_dd.m_basis[1,1];
-		  ROS_INFO_STREAM("Part-pose "<<tf_dd.m_basis.m_el[1].m_floats[1]);
-	      STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[1]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[2]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[3]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[4]<< ',' ;
+          part_pose_.serialize(tf_dd);
+          ROS_INFO_STREAM("Part-pose "<<tf_dd.m_basis.m_el[1].m_floats[1]);
+          STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[0]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[0]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[0]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[0]<< ',' ;
 
-	      STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[1]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[2]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[3]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[4]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[1]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[1]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[1]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[1]<< ',' ;
 
-	      STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[1]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[2]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[3]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[4]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[2]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[2]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[2]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[2]<< ',' ;
 
-	      STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[1]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[2]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[3]<< ',' ;
-	      STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[4]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[3]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[3]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[3]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[3]<< ',' ;
 
-	      STATFILE_<<tf_dd.m_origin.m_floats[1]<< ',' ;
-	      STATFILE_<<tf_dd.m_origin.m_floats[2]<< ',' ;
-	      STATFILE_<<tf_dd.m_origin.m_floats[3]<< ',' ;
-	      STATFILE_<<tf_dd.m_origin.m_floats[4]<< ',' ;
-	      ROS_INFO_STREAM("Sample Number: "<<sample_number_);
-	      STATFILE_<<sample_number_<<endl;
+          ROS_INFO_STREAM("Sample Number: "<<sample_number_);
+          STATFILE_<<sample_number_<<endl;
         }
         ros::Time rec_total_finish = ros::Time::now();
         ros::Duration rec_total = rec_total_finish - rec_total_start;
