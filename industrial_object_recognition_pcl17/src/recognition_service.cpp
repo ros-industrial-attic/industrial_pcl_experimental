@@ -938,7 +938,7 @@ public:
         tf::Transform tf_model;
         tf_model.setRotation(tf_quater);
         tf_model.setOrigin(tf_transl);
-        ROS_INFO_STREAM("Model origin: "<< tf_transl.x()<<", " <<tf_transl.y()<<", "<<tf_transl.z());
+        //ROS_INFO_STREAM("Model origin: "<< tf_transl.x()<<", " <<tf_transl.y()<<", "<<tf_transl.z());
 
         //POSE OF ROTOTRANSLATION
         Eigen::Matrix3f rotation = rototranslations[j].block<3,3>(0, 0);
@@ -958,7 +958,7 @@ public:
         tf::Transform tf_rototrans;
         tf_rototrans.setRotation(tf_quat);
         tf_rototrans.setOrigin(tf_translation);
-        ROS_INFO_STREAM("Rototranslation origin: "<< tf_translation.x()<<", " <<tf_translation.y()<<", "<<tf_translation.z());
+        //ROS_INFO_STREAM("Rototranslation origin: "<< tf_translation.x()<<", " <<tf_translation.y()<<", "<<tf_translation.z());
 
         //Part pose in passed in frame (world_frame)
         part_pose_ = tf_rototrans*tf_model;
@@ -988,17 +988,31 @@ public:
         ROS_INFO_STREAM("Using modulus and logic, diff between z and world: "<<diff_from_vert);
 
         //part pose with tool offset
-        gripper_pose_.setIdentity();
+        //gripper_pose_.setIdentity();
         tf::Vector3 part_pose_xy = part_pose_.getOrigin();
         gripper_pose_.setOrigin(tf::Vector3(part_pose_xy.x(), part_pose_xy.y(), 0.080));
         tf::Quaternion grip_q;
-        tf::Quaternion part_q = part_pose_.getRotation();
+        //tf::Quaternion part_q = part_pose_.getRotation();
         tf::Matrix3x3 part_r, grip_r;
-        part_r.setRotation(part_q);
+        part_r = part_pose_.getBasis();
         tf::Vector3 x_v_p=part_r.getColumn(0);
-        grip_r.setValue(x_v_p.x(), 0, 0, x_v_p.y(), 1, 0, x_v_p.z(), 0, -1);
-        grip_r.getRotation(grip_q);
+        ROS_INFO_STREAM("X vector for part to include in gripper orientation: "<< x_v_p.x() <<", "<<x_v_p.y()<<", "<< x_v_p.z());
+        tf::Vector3 grip_z_v(0, 0, -1.0f);
+        //tf::Vector3 dot_x=
+        tf::Vector3 x_proj = x_v_p - tf::tfDot(x_v_p, grip_z_v) * grip_z_v;
+        ROS_INFO_STREAM("X vector projection: "<< x_proj.getX() <<", "<<x_proj.getY()<<", "<< x_proj.getZ());
+        tf::Vector3 grip_y_v = tf::tfCross(x_proj, grip_z_v);
+        ROS_INFO_STREAM("Y vector from cross: "<< grip_y_v.getX() <<", "<<grip_y_v.getY()<<", "<< grip_y_v.getZ());
+        grip_r.setValue(x_proj.getX(), grip_y_v.getX(), 0, x_proj.getY(), grip_y_v.getY(), 0, x_proj.getZ(), grip_y_v.getZ(), -1.0f);
+        double yaw, pitch, roll;
+        grip_r.getEulerYPR(yaw, pitch, roll);
+        //grip_r.setValue(x_v_p.x(), 0, 0, x_v_p.y(), 1, 0, x_v_p.z(), 0, -1.0f);
+        //tf::Vector3 x_v_p=part_r.getRow(0);
+        //grip_r.setValue(x_v_p.x(), x_v_p.y(), x_v_p.z(), 0, 1, 0, 0, 0, -1.0f);
+        //grip_r.getRotation(grip_q);
+        grip_q.setRPY(roll, pitch, yaw);
         gripper_pose_.setRotation(grip_q);
+        //gripper_pose_.setBasis(grip_r);
 
         tf::Transform tf_trans_ee;
         tf_trans_ee.setIdentity();
@@ -1008,11 +1022,11 @@ public:
 
         gripper_pose_=gripper_pose_*tf_trans_ee;
 
-        tf::Quaternion rot_x;
+        /*tf::Quaternion rot_x;
         rot_x.setValue(sin(3.14159/2), 0, 0, cos(3.14159/2));
         tf::Quaternion rot = gripper_pose_.getRotation();
         tf::Quaternion rotated_z=rot*rot_x;
-        gripper_pose_.setRotation(rotated_z);
+        gripper_pose_.setRotation(rotated_z);*/
 
         //PUBLISH
         tf::poseTFToMsg(part_pose_, model_pose_msg);
@@ -1029,11 +1043,13 @@ public:
 
         //CHECK ANGLE OF POSE TO SEE IF CLOSE TO VERTICAL
         tf::Vector3 world_x_vect(1.0f,0.0f, 0.0f);
-        tf::Matrix3x3 part_rot;
-        part_rot=part_pose_.getBasis();
+        tf::Matrix3x3 part_rot=part_pose_.getBasis();
         tf::Vector3 part_x_vect=part_rot.getColumn(0);
+        tf::Matrix3x3 grip_rot_check = gripper_pose_.getBasis();
+        tf::Vector3 grip_x_vect=grip_rot_check.getColumn(0);
 
         part_rot_ = part_x_vect.angle(world_x_vect);
+        ROS_INFO_STREAM("Angle between x component of gripper pose and x in world frame: " << (grip_x_vect.angle(world_x_vect))*180/3.14159);
         ROS_INFO_STREAM("Angle between x component of part pose and x in world frame: " << part_rot_*180/3.14159);
 
         if (diff_from_vert < 10)
@@ -1326,23 +1342,23 @@ public:
           part_pose_.serialize(tf_dd);
           ROS_INFO_STREAM("Part-pose "<<tf_dd.m_basis.m_el[1].m_floats[1]);
           STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[0]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[0]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[0]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[0]<< ',' ;
-
           STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[1]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[1]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[1]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[1]<< ',' ;
-
-          STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[2]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[2]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[2]<< ',' ;
-          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[2]<< ',' ;
-
+          STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[1]<< ',' ;
           STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[3]<< ',' ;
+
+          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[0]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[1]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[2]<< ',' ;
           STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[3]<< ',' ;
+
+          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[0]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[1]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[2]<< ',' ;
           STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[3]<< ',' ;
+
+          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[0]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[1]<< ',' ;
+          STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[2]<< ',' ;
           STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[3]<< ',' ;
 
           ROS_INFO_STREAM("Sample Number: "<<sample_number_);
