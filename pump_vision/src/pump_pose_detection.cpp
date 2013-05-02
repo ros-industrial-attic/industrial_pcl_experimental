@@ -48,15 +48,15 @@ public:
 	{
 	}
 
-	Mat input_Img;
-	Mat binary_Img;
-	Mat binary_Removed_Img;
+	Mat input_Img;  //Initial Image
+	Mat binary_Img;	//Binary Image of Initial
+	Mat binary_Removed_Img;  //Image the most processing is conducted on (Morph Removed)
 
-	Mat largeCircle_Located;
-	Mat smallCircle_Located;
+	Mat largeCircle_Located;  //Convolved Image (Removed with Large Circle Filter)
+	Mat smallCircle_Located;  //Convolved Image (Removed with Small Circle Filter)
 
-	Mat large_Circle_Filter;
-	Mat small_Circle_Filter;
+	Mat large_Circle_Filter;  //Created large circle kernel
+	Mat small_Circle_Filter;  //Created small circle kernel
 
 	Mat flanges_Located;
 
@@ -83,13 +83,15 @@ public:
 	float center_Calc_Dist;
 	float center_Max_Dist;
 
+
+
 	vector<Point> pump_Small_Hole_Points;
 	vector<Point> extracted_Pump_MidPoints;
 	vector<Point> pump_LongAxis_Points;
 
 	float calculatedAngle;
-
-
+	float point_Line_Distance;  //Calculated distance between pump centerline and closest pump port
+	float max_point_Line_Distance; //Max distance allowed between pump centerline and closest pump port
 
 	void create_Dilation_Element(int sz)
 	{
@@ -129,6 +131,9 @@ public:
 			ROS_ERROR("Cannot threshold image.");
 			return;
 		}
+
+		imshow(WINDOW1, binary_Img);
+		waitKey(3);
 
 	}
 
@@ -226,6 +231,8 @@ public:
 		}catch(int a){
 			ROS_ERROR("Cannot convolve circular images.");
 		}
+		//imshow(WINDOW4, smallCircle_Located);
+		//waitKey(3);
 	}
 
 	Mat createConstantImage(Mat img, int val)
@@ -424,6 +431,9 @@ public:
 	      return halfImg;
 	    }
 
+	    //imshow(WINDOW4,bgr_planes[2]);
+	    //waitKey(3);
+
 		return bgr_planes[2];
 	}
 
@@ -599,6 +609,8 @@ public:
 		morph_Bridge();
 		morph_Majority();
 		binary_Removed_Img = morph_Removal(binary_Img);
+		//imshow(WINDOW4,binary_Removed_Img);
+		//waitKey(3);
 	}
 
 	Mat extractFlangeLocations(Mat img, Point pt)
@@ -645,8 +657,8 @@ public:
 				pt = Point(x0, y0);
 			}
 		}
+		point_Line_Distance = dist_Min;
 
-		//ROS_INFO("%f, %f", pt.x, pt.y);
 		return pt;
 	}
 
@@ -678,8 +690,12 @@ public:
 		vector<vector<Point> > contours;
 		vector<Vec4i> hierarchy;
 
+		//imshow(WINDOW2, img);
+		//waitKey(3);
 		img = dialte_Image(img, diltation_Element);
 		img = dialte_Image(img, diltation_Element);
+		//imshow(WINDOW3, img);
+		//waitKey(3);
 
 		/// Find contours
 		findContours( img, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
@@ -737,8 +753,8 @@ public:
 
 		pump_LongAxis_Points = locate_LongestSegment(extracted_Pump_MidPoints);
 
-		//imshow( WINDOW3, drawing );
-		//waitKey(0);
+		imshow( WINDOW3, drawing );
+		waitKey(3);
 
 	    return drawing;
 	}
@@ -817,7 +833,7 @@ public:
 		input_Img = resize_Mono_Img(img);
 
 
-		create_binary_image(235);
+		create_binary_image(220);//225
 		initial_morph_Process_Image();
 
 		convolveCircluarFilters_With_PumpImg();
@@ -825,8 +841,8 @@ public:
         int threshVal = calculate_Small_Circle_Thresh(smallCircle_Located, 0.75);
 
 		smallCircle_Located = create_binary_image_Return(smallCircle_Located, (double)threshVal);
-		//imshow(WINDOW1, pump_IP.smallCircle_Located);
-		//waitKey(0);
+		//imshow(WINDOW4, smallCircle_Located);
+		//waitKey(3);
 
 		smallCircle_Located = dialte_Image(smallCircle_Located, diltation_Element);
 		//imshow(WINDOW1, pump_IP.smallCircle_Located);
@@ -835,6 +851,9 @@ public:
 		smallCircle_Located = shrink_Binary_Image(smallCircle_Located);
 
 		pump_Small_Hole_Points = extract_Pump_Hole_Points(smallCircle_Located);
+
+		//imshow(WINDOW4, smallCircle_Located);
+		//waitKey(3);
 
 
 		bool objectDetected = false;
@@ -869,17 +888,28 @@ public:
 			pump_Orientation_Detection(binary_Img);
 		}
 
+		//return;
+		Point zero_Side;
 		if (objectDetected){
-			Point zero_Side = findShortestPointDistance(pump_Small_Hole_Points, pump_LongAxis_Points);
+			zero_Side = findShortestPointDistance(pump_Small_Hole_Points, pump_LongAxis_Points);
+		}
 
+		if (point_Line_Distance < max_point_Line_Distance){
+			ROS_ERROR("Point-line distance: %f", point_Line_Distance);
+			objectDetected = true;
+		}else{
+			objectDetected = false;
+			ROS_ERROR("Line to point distance (%f) is too far (%f)!", point_Line_Distance, max_point_Line_Distance);
+		}
+
+		if (objectDetected){
 			Point imgSide = Point(binary_Img.cols, Pump_Intersection_Small.y);
 			calculatedAngle = calc_VectorAngle(Pump_Intersection_Small, imgSide, zero_Side);
 			drawImageDetails(input_Img, Pump_Intersection_Large, Pump_Intersection_Small, pump_Small_Hole_Points, calculatedAngle, extracted_Pump_MidPoints, pump_LongAxis_Points, zero_Side);
 		}else{
 			drawErrorImage();
 		}
-			//}
-		//}
+
 	}
 
 };
@@ -899,10 +929,11 @@ int main(int argc, char** argv)
 
   pump_IP.circle_Width_Large = 1;
   pump_IP.circle_Width_Small = 2;
-  pump_IP.largeRad = 181;  //190
-  pump_IP.smallRad = 44; //47
+  pump_IP.largeRad = 185;  //182
+  pump_IP.smallRad = 47; //44
 
   pump_IP.center_Max_Dist = 20;
+  pump_IP.max_point_Line_Distance = 10;
 
   pump_IP.Flange_Center_Distance = 214;
   pump_IP.outer_Circle_To_Center_Dist = 115; //115
@@ -911,83 +942,7 @@ int main(int argc, char** argv)
 
   pump_IP.create_Circular_Filters();
   pump_IP.create_Dilation_Element(3);
-
-
-  //Mat image_input = imread("/home/twhitney/Desktop/2013_04_22_Pump_Housing_Vision/Test Images 3/RecordedImage_GE1350C (02-2031C)_00-0F-31-01-B9-9A_250.tif");
-  //cvNamedWindow("view");
-  //cvStartWindowThread();
-
-
-  //ros::NodeHandle nh;
-
-  //image_transport::ImageTransport it(nh);
-
-  //image_transport::Subscriber sub = it.subscribe("/prosilica/image_raw", 1, processPumpImage);
   ros::spin();
-  //cvDestroyWindow("view");
-  /*
-  //image_transport::Subscriber sub = it.subscribe("in_image_base_topic", 1, imageCallback);
-  //image_transport::Publisher pub = it.advertise("out_image_base_topic", 1);
-
-  pump_IP.input_Img = pump_IP.resize_Mono_Img(image_input);
-
-  //ROS_INFO("%d, %d", pump_IP.input_Img.rows, pump_IP.input_Img.cols);
-  pump_IP.create_binary_image(235);
-
-  //imshow(WINDOW1, pump_IP.binary_Img);
-  //waitKey(0);
-
-  pump_IP.initial_morph_Process_Image();
-
-
-  pump_IP.convolveCircluarFilters_With_PumpImg();
-
-  int threshVal = pump_IP.calculate_Small_Circle_Thresh(pump_IP.smallCircle_Located, 0.75);
-
-  pump_IP.smallCircle_Located = pump_IP.create_binary_image_Return(pump_IP.smallCircle_Located, (double)threshVal);
-  imshow(WINDOW1, pump_IP.smallCircle_Located);
-  waitKey(0);
-
-  pump_IP.smallCircle_Located = pump_IP.dialte_Image(pump_IP.smallCircle_Located, pump_IP.diltation_Element);
-  imshow(WINDOW1, pump_IP.smallCircle_Located);
-  waitKey(0);
-
-  pump_IP.smallCircle_Located = pump_IP.shrink_Binary_Image(pump_IP.smallCircle_Located);
-
-  pump_IP.pump_Small_Hole_Points = pump_IP.extract_Pump_Hole_Points(pump_IP.smallCircle_Located);
-  pump_IP.Pump_Intersection_Small = pump_IP.locatePumpIntersectionSmall(pump_IP.pump_Small_Hole_Points);
-
-  pump_IP.pump_Small_Hole_Points = pump_IP.removeSmall_CirclePoints(pump_IP.pump_Small_Hole_Points, pump_IP.outer_Circle_To_Center_Dist, pump_IP.Pump_Intersection_Small, 5);
-  //ROS_INFO("%d, %d", pump_IP.Pump_Intersection_Small.x, pump_IP.Pump_Intersection_Small.y);
-
-  pump_IP.Pump_Intersection_Large = pump_IP.locatePumpIntersectionLarge(pump_IP.largeCircle_Located);
-  //ROS_INFO("%d, %d", pump_IP.Pump_Intersection_Large.x, pump_IP.Pump_Intersection_Large.y);
-
-  pump_IP.center_Calc_Dist = pump_IP.calculateCenters_Distances(pump_IP.Pump_Intersection_Large, pump_IP.Pump_Intersection_Small);
-  //ROS_INFO("%f",pump_IP.center_Calc_Dist);
-
-  if (pump_IP.center_Calc_Dist > pump_IP.center_Max_Dist)
-  {
-
-  }
-
-  imshow(WINDOW1, pump_IP.binary_Img);
-  waitKey(0);
-
-  //pump_IP.flanges_Located = pump_IP.extractFlangeLocations(pump_IP.binary_Img, pump_IP.Pump_Intersection_Small);
-
-
-  pump_IP.convexHull_FlangeImage(pump_IP.binary_Img);
-
-  Point zero_Side = pump_IP.findShortestPointDistance(pump_IP.pump_Small_Hole_Points, pump_IP.pump_LongAxis_Points);
-
-  Point imgSide = Point(pump_IP.binary_Img.cols, pump_IP.Pump_Intersection_Small.y);
-  pump_IP.calculatedAngle = pump_IP.calc_VectorAngle(pump_IP.Pump_Intersection_Small, imgSide, zero_Side);
-
-  pump_IP.drawImageDetails(pump_IP.input_Img, pump_IP.Pump_Intersection_Large, pump_IP.Pump_Intersection_Small, pump_IP.pump_Small_Hole_Points, pump_IP.calculatedAngle, pump_IP.extracted_Pump_MidPoints, pump_IP.pump_LongAxis_Points, zero_Side);
-
-
 
   return 0;
-  */
 }
