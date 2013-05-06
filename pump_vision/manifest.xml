@@ -14,6 +14,7 @@
   <depend package="image_transport"/>
   <depend package="cv_bridge"/>
   <depend package="sensor_msgs"/>
+  <depend package="mantis_perception"/>
 </package>
 
 

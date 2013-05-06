@@ -15,6 +15,8 @@
 #include <cv_bridge/CvBridge.h>
 #include <cv_bridge/cv_bridge.h>
 
+#include <mantis_perception/mantis_recognition.h>
+
 //typedef boost::shared_ptr<CvImage> CvImagePtr;
 
 static const char WINDOW1[] = "Image window 1";
@@ -36,12 +38,14 @@ class pump_image_processing
 	image_transport::Subscriber image_sub_;
 	image_transport::Publisher image_pub_;
 
+	ros::ServiceServer pump_Angle_Service_;
+
 public:
 
 	pump_image_processing(): it_(nh_)
 	{
 		//image_pub_ = it_.advertise("out", 1);
-		image_sub_ = it_.subscribe("prosilica/image_color", 1, &pump_image_processing::processPumpImage, this);
+		//image_sub_ = it_.subscribe("prosilica/image_color", 1, &pump_image_processing::processPumpImage, this);
 	}
 
 	~pump_image_processing()
@@ -58,46 +62,41 @@ public:
 	Mat large_Circle_Filter;  //Created large circle kernel
 	Mat small_Circle_Filter;  //Created small circle kernel
 
-	Mat flanges_Located;
+	Mat diltation_Element;
 
-	int threshhold_Value;
+	int threshold_Value;
 
 	int circle_Width_Large;
 	int circle_Width_Small;
 
 	int largeRad;
-	int largeKernal_Size;
-
-	int smallKernal_Size;
 	int smallRad;
 
-	int Flange_Center_Distance;
-
 	int outer_Circle_To_Center_Dist;
-
-	Mat diltation_Element;
 
 	Point Pump_Intersection_Small;
 	Point Pump_Intersection_Large;
 
 	float center_Calc_Dist;
-	float center_Max_Dist;
-
-
+	double center_Max_Dist;
 
 	vector<Point> pump_Small_Hole_Points;
 	vector<Point> extracted_Pump_MidPoints;
 	vector<Point> pump_LongAxis_Points;
 
-	float calculatedAngle;
-	float point_Line_Distance;  //Calculated distance between pump centerline and closest pump port
-	float max_point_Line_Distance; //Max distance allowed between pump centerline and closest pump port
+	float calculatedAngle;  //Calculated angle from the dot product between the horizontal and located port hole.
+	float point_Line_Distance;  //Calculated distance between pump centerline and closest pump port.
+	double max_point_Line_Distance; //Max distance allowed between pump centerline and closest pump port.
+
+	String errorCode;
+
 
 	void create_Dilation_Element(int sz)
 	{
 		try{
 			diltation_Element = getStructuringElement(MORPH_RECT, Size(sz,sz));
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot create dilation structuring element.");
 		}
 	}
@@ -107,6 +106,7 @@ public:
 		try{
 			dilate(img, img, structElem);
 		} catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot dilate image.");
 		}
 		return img;
@@ -115,9 +115,10 @@ public:
 	void create_Circular_Filters()
 	{
 		try{
-			large_Circle_Filter = createHoughCircles(largeRad, largeKernal_Size, circle_Width_Large);
-			small_Circle_Filter = createHoughCircles(smallRad, smallKernal_Size, circle_Width_Small);
+			large_Circle_Filter = createHoughCircles(largeRad, circle_Width_Large);
+			small_Circle_Filter = createHoughCircles(smallRad, circle_Width_Small);
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot create Hough Circle images.");
 		}
 	}
@@ -128,12 +129,13 @@ public:
 		try{
 			threshold(input_Img, binary_Img, threshVal, 255.0, CV_THRESH_BINARY);
 		} catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot threshold image.");
 			return;
 		}
 
-		imshow(WINDOW1, binary_Img);
-		waitKey(3);
+		//imshow(WINDOW1, binary_Img);
+		//waitKey(3);
 
 	}
 
@@ -144,6 +146,7 @@ public:
 			threshold(img, bin_Img, threshVal, 255.0, CV_THRESH_BINARY);
 			return bin_Img;
 		} catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot threshold image.");
 			return bin_Img;
 		}
@@ -157,68 +160,162 @@ public:
 			int s = img.step;
 			int c = img.channels();
 
-			for (int ii = 0; ii < imgSweep.rows; ii++){
-				for (int jj = 0; jj < imgSweep.cols; jj++){
-					imgSweep.data[ii*s+jj*c+0] = img.data[ii*s+jj*c+0];
-				}
-			}
+			//for (int ii = 0; ii < imgSweep.rows; ii++){
+			//	for (int jj = 0; jj < imgSweep.cols; jj++){
+			//		imgSweep.data[ii*s+jj*c+0] = img.data[ii*s+jj*c+0];
+			//	}
+			//}
 
+			vector<vector<Point> > contours;
+
+			//findContours( img, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+			//ROS_ERROR("Here1");
+			findContours( img, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+			//ROS_ERROR("Here2");
+			vector<Moments> mu(contours.size() );
+			for( int i = 0; i < contours.size(); i++ ){
+				//if (contours[i].size() > 5){
+					mu[i] = moments( contours[i], false );
+				//}
+			}
+			//ROS_ERROR("Here3");
+			///  Get the mass centers:
+			vector<Point2f> mc( contours.size() );
+			for( int i = 0; i < contours.size(); i++ ){
+				mc[i] = Point2f( mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 );
+				//ROS_ERROR("%f, %f", mc[i].x, mc[i].y);
+			}
+			//ROS_ERROR("Here4");
+			for (int ii = 0; ii < contours.size(); ii++){
+				int x = (int)mc[ii].x;
+				int y = (int)mc[ii].y;
+				imgSweep.data[y*s+x*c+0] = 255;
+			}
+			//ROS_ERROR("Here3");
+			//ROS_ERROR("Here5");
+			//ROS_ERROR("_");
+			/*
 			bool stillProcessing = true;
 
+			int mx = 0;
 			for (int ii = 0; ii < 500; ii++){
 				if(stillProcessing){
 					stillProcessing = false;
 					for (int jj = 1; jj < img.rows -1; jj++){
 						for (int kk = 1; kk < img.cols - 1; kk++){
-							if (img.data[jj*s + kk*c + 0] == 255){
-								int v1 = img.data[(jj-1)*s+(kk-1)*c+0];
-								int v2 = img.data[(jj-1)*s+(kk)*c+0];
-								int v3 = img.data[(jj-1)*s+(kk+1)*c+0];
-								int v4 = img.data[(jj)*s+(kk-1)*c+0];
-								int v5 = img.data[(jj)*s+(kk+1)*c+0];
-								int v6 = img.data[(jj+1)*s+(kk-1)*c+0];
-								int v7 = img.data[(jj+1)*s+(kk)*c+0];
-								int v8 = img.data[(jj+1)*s+(kk+1)*c+0];
-								int val = v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8;
-								if ((val > 0) && (val < 255 * 8)){
-									//ROS_INFO("%d", val);
+							if (imgSweep.data[jj*s + kk*c + 0] == 255){
+								int v1 = imgSweep.data[(jj-1)*s+(kk-1)*c+0];
+								int v2 = imgSweep.data[(jj-1)*s+(kk)*c+0];
+								int v3 = imgSweep.data[(jj-1)*s+(kk+1)*c+0];
+								int v4 = imgSweep.data[(jj)*s+(kk-1)*c+0];
+								int v5 = imgSweep.data[(jj)*s+(kk+1)*c+0];
+								int v6 = imgSweep.data[(jj+1)*s+(kk-1)*c+0];
+								int v7 = imgSweep.data[(jj+1)*s+(kk)*c+0];
+								int v8 = imgSweep.data[(jj+1)*s+(kk+1)*c+0];
+								int v0 = imgSweep.data[(jj)*s+(kk)*c+0];
+								int val = (v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v0)/255;
+								if (val > mx){
+									mx = val;
+								}
+								if ((val > 3) && (val < 9)){
 									stillProcessing = true;
-									img.data[jj*s+kk*c+0] = 0;
+									imgInternal.data[jj*s+kk*c+0] = 0;
 								}
 							}
 						}
 					}
+
+					//for (int ll = 0; ll < imgSweep.rows; ll++){
+					//	for (int mm = 0; mm < imgSweep.cols; mm++){
+					//		imgSweep.data[(ll)*s+(mm)*c+0] = imgInternal.data[ll*s+mm*c+0];
+					//	}
+					//}
+
+
 				}else{
+					ROS_ERROR("Iteration: %d",ii);
 					ii = 499;
 				}
+				//imgSweep.data = imgInternal.data;
 			}
+			ROS_ERROR("%d", mx);
+			*/
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot shrink binary image.");
 		}
-	    return img;
+	    return imgSweep;
 	}
 
 	Mat convolveImage(Mat image, Mat convKernal)
 	{
-		Mat locatedCircles;
+		Mat locatedCircles = Mat::zeros(image.rows,image.cols, CV_16UC1);;
+
+		Mat located8Bit = Mat::zeros(image.rows,image.cols, CV_8UC1);;
+
+		Mat imgInput_F = Mat::zeros(image.rows,image.cols, CV_16UC1);
+		Mat kernelInput = Mat::zeros(convKernal.rows,convKernal.cols, CV_16UC1);
+
+		image.convertTo(imgInput_F, CV_16UC1, 1.0/255.0);
+		convKernal.convertTo(kernelInput, CV_16UC1, 1.0/255.0);
+
+		Mat threshCheck;
 
 		try{
-		//ROS_INFO("HERE1");
-			Mat imgConst = createConstantImage(image, 255);
-			Mat circleConst = createConstantImage(convKernal, 255);
+			//ROS_ERROR("Here!1");
+			filter2D(imgInput_F, locatedCircles, -1, kernelInput, Point(-1,-1), 0.0, BORDER_CONSTANT);
+			//ROS_ERROR("Here!2");
 
-			Mat img = image.clone();
-			Mat kernel = convKernal.clone();
+			double max;
+			int maxIdx[3];
+			minMaxIdx(locatedCircles, 0, &max, 0, maxIdx);
 
-			divide(image, imgConst, img, 1.0);
+			double threshVal = round(max * .9);
+			int s_16 = locatedCircles.step;
+			//int s_8 = located8Bit.step;
+			int c = image.channels();
 
-			divide(convKernal, circleConst, kernel, 1.0);
 
-			filter2D(img, locatedCircles, 64, kernel, Point(-1,-1), 0.0, BORDER_CONSTANT);
+			//ROS_ERROR("%d, %d",locatedCircles.rows, locatedCircles.cols);
+			//imshow(WINDOW3, locatedCircles);
+			//waitKey(5000);
+
+			Mat locatedFloat = Mat::zeros(image.rows,image.cols, CV_32FC1);
+
+
+
+			locatedCircles.convertTo(locatedFloat, CV_32FC1, 1.0/max);
+
+			threshold(locatedFloat, threshCheck, 0.75, 1.0, CV_THRESH_BINARY);
+
+			//imshow(WINDOW1, threshCheck);
+			//waitKey(5000);
+
+			threshCheck.convertTo(threshCheck, CV_8UC1, 255.0);
+
+			//ROS_ERROR("%s", threshCheck.)
+			//locatedFloat.convertTo(located8Bit, CV_8UC1, 255.0);
+
+			/*
+			for (int ii = 0; ii < locatedCircles.rows; ii++){
+				for (int jj = 0; jj < locatedCircles.cols; jj++){
+					if (locatedCircles.data[ii*s_16 + jj*c + 0] > (int)threshVal){
+						locatedCircles.data[ii*s_16 + jj*c + 0] = 255.0;
+					}else{
+						locatedCircles.data[ii*s_16 + jj*c + 0] = 0.0;
+					}
+				}
+			}
+			*/
+			//locatedCircles.convertTo(located8Bit, CV_8UC1);
+			//imshow(WINDOW4, located8Bit);
+
+
 		} catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot convolve image.");
 		}
-		return locatedCircles;
+		return threshCheck;
 	}
 
 	///Convolve each circular filter with the removed, binary pump image
@@ -229,19 +326,24 @@ public:
 			largeCircle_Located = convolveImage(binary_Removed_Img, large_Circle_Filter);
 			smallCircle_Located = convolveImage(binary_Removed_Img, small_Circle_Filter);
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot convolve circular images.");
 		}
-		//imshow(WINDOW4, smallCircle_Located);
+
+		//imshow(WINDOW1, largeCircle_Located);
+		//waitKey(3);
+		//imshow(WINDOW2, smallCircle_Located);
 		//waitKey(3);
 	}
 
 	Mat createConstantImage(Mat img, int val)
 	{
-		Mat M = Mat::ones(img.rows, img.cols, CV_8U);
+		Mat M = Mat::ones(img.rows, img.cols, CV_64FC1);
 		try{
-			M = M * 255;
+			M = M * val;
 		}catch(int a){
 			ROS_ERROR("Cannot create constant image.");
+			errorCode = "Error";
 			return M;
 		}
 		return M;
@@ -313,6 +415,7 @@ public:
 			}
 		}catch(int a){
 			ROS_ERROR("Cannot create binary bridged image.");
+			errorCode = "Error";
 			return;
 		}
 		binary_Img = imgSweep;
@@ -322,35 +425,36 @@ public:
 	{
 		Mat imgSweep;
 		try{
-		imgSweep = Mat::zeros(binary_Img.rows,binary_Img.cols, CV_8UC1);
+			imgSweep = Mat::zeros(binary_Img.rows,binary_Img.cols, CV_8UC1);
 
-		int s = binary_Img.step;
-		int c = binary_Img.channels();
+			int s = binary_Img.step;
+			int c = binary_Img.channels();
 
-		for (int ii = 1; ii < imgSweep.rows - 1; ii++){
-			for (int jj = 1; jj < imgSweep.cols - 1; jj++){
-				if (binary_Img.data[(ii)*s+(jj)*c+0] == 0){
-					int v1 = binary_Img.data[(ii-1)*s+(jj-1)*c+0];
-					int v2 = binary_Img.data[(ii-1)*s+(jj)*c+0];
-					int v3 = binary_Img.data[(ii-1)*s+(jj+1)*c+0];
-					int v4 = binary_Img.data[(ii)*s+(jj-1)*c+0];
-					int v5 = binary_Img.data[(ii)*s+(jj+1)*c+0];
-					int v6 = binary_Img.data[(ii+1)*s+(jj-1)*c+0];
-					int v7 = binary_Img.data[(ii+1)*s+(jj)*c+0];
-					int v8 = binary_Img.data[(ii+1)*s+(jj+1)*c+0];
-					int val = v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8;
-					if (val > 255 * 4)
-					{
-						imgSweep.data[(ii)*s+(jj)*c+0] = 255;
+			for (int ii = 1; ii < imgSweep.rows - 1; ii++){
+				for (int jj = 1; jj < imgSweep.cols - 1; jj++){
+					if (binary_Img.data[(ii)*s+(jj)*c+0] == 0){
+						int v1 = binary_Img.data[(ii-1)*s+(jj-1)*c+0];
+						int v2 = binary_Img.data[(ii-1)*s+(jj)*c+0];
+						int v3 = binary_Img.data[(ii-1)*s+(jj+1)*c+0];
+						int v4 = binary_Img.data[(ii)*s+(jj-1)*c+0];
+						int v5 = binary_Img.data[(ii)*s+(jj+1)*c+0];
+						int v6 = binary_Img.data[(ii+1)*s+(jj-1)*c+0];
+						int v7 = binary_Img.data[(ii+1)*s+(jj)*c+0];
+						int v8 = binary_Img.data[(ii+1)*s+(jj+1)*c+0];
+						int val = v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8;
+						if (val > 255 * 4)
+						{
+							imgSweep.data[(ii)*s+(jj)*c+0] = 255;
+						}
 					}
 				}
 			}
-		}
-		//imshow(WINDOW1,imgSweep);
-		//waitKey(0);
+			//imshow(WINDOW1,imgSweep);
+			//waitKey(0);
 
-		add(imgSweep,binary_Img, binary_Img);
+			add(imgSweep,binary_Img, binary_Img);
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot create majority image.");
 		}
 		//imshow(WINDOW1,binary_Img);
@@ -387,15 +491,19 @@ public:
 				}
 			}
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Cannot create removed image.");
 			return imgSweep;
 		}
 		return imgSweep;
 	}
 
-	Mat createHoughCircles(int radius, int Kernal_size, int variation)
+	Mat createHoughCircles(int radius, int variation)
 	{
 		Mat filter;
+
+		int Kernal_size = radius * 2 + 11;
+
 		filter = Mat::zeros(Kernal_size,Kernal_size, CV_8UC1);
 
 	    int s = filter.step;
@@ -424,16 +532,11 @@ public:
 	    	resize(inputImg, halfImg, sz, 0.0f, 0.0f, CV_INTER_LINEAR);
 
 	    	split( halfImg, bgr_planes);
+	    }catch(int e){
+	    	errorCode = "Error";
+	    	ROS_ERROR("Image Splitting Exception");
+	    	return halfImg;
 	    }
-	    catch(int e)
-	    {
-	      ROS_ERROR("Image Splitting Exception");
-	      return halfImg;
-	    }
-
-	    //imshow(WINDOW4,bgr_planes[2]);
-	    //waitKey(3);
-
 		return bgr_planes[2];
 	}
 
@@ -506,6 +609,7 @@ public:
 
 			pt = Point(maxIdx[1], maxIdx[0]);
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Could not locate pump intersections (Small).");
 			return pt;
 		}
@@ -521,7 +625,9 @@ public:
 			int maxIdx[3];
 			minMaxIdx(img, 0, &max, 0, maxIdx);
 			pt = Point(maxIdx[1], maxIdx[0]);
+			//ROS_ERROR("%d, %d", pt.x, pt.y);
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Could not locate pump intersections (Large).");
 			return pt;
 		}
@@ -533,7 +639,6 @@ public:
 	{
 		double xa = (double)(p1.x - p2.x);
 		double ya = (double)(p1.y - p2.y);
-
 
 		double dist = sqrt(xa*xa +ya*ya);
 		//ROS_INFO("%f, %f, %f",xa, ya, dist);
@@ -556,11 +661,13 @@ public:
 				}
 			}
 		}catch(int a){
+			errorCode = "Error";
 			ROS_ERROR("Could not remove small circle points.");
 			return retained_Pts;
 		}
 
 		if (retained_Pts.size() == 0){
+			errorCode = "Error";
 			ROS_ERROR("Could not remove small circle points.");
 			//throw "Could not remove small circle points.";
 		}
@@ -613,6 +720,7 @@ public:
 		//waitKey(3);
 	}
 
+	/*
 	Mat extractFlangeLocations(Mat img, Point pt)
 	{
 		Mat imgSweep = Mat::zeros( img.rows, img.cols, CV_8UC1);
@@ -636,6 +744,7 @@ public:
 
 	    return imgSweep;
 	}
+	*/
 
 	Point findShortestPointDistance(vector<Point> pts, vector<Point> line)
 	{
@@ -675,11 +784,20 @@ public:
 
 		double angle = acos((dotP/ (magH * magP)))* 180 / 3.14;
 
+		if (angle < 0){
+			angle = -1;
+			return (float)angle;
+		}
 		if ((Pump_Zero.y - centerPt.y) > 0){
 			angle = 360 - angle;
 		}
-		//ROS_INFO("%f", angle);
 
+		if (angle < 0 || angle > 360){
+			angle = -1;
+			return (float)angle;
+		}
+
+		ROS_ERROR("Calculated angle is : %f", (float)angle);
 		return (float)angle;
 	}
 
@@ -690,12 +808,8 @@ public:
 		vector<vector<Point> > contours;
 		vector<Vec4i> hierarchy;
 
-		//imshow(WINDOW2, img);
-		//waitKey(3);
 		img = dialte_Image(img, diltation_Element);
 		img = dialte_Image(img, diltation_Element);
-		//imshow(WINDOW3, img);
-		//waitKey(3);
 
 		/// Find contours
 		findContours( img, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
@@ -747,29 +861,28 @@ public:
 			box_MidPoints.push_back(Point(dx,dy));
 		}
 
-		//ROS_INFO("%f, %f", area_Max, Rect_angle);
-
 		extracted_Pump_MidPoints = box_MidPoints;
-
 		pump_LongAxis_Points = locate_LongestSegment(extracted_Pump_MidPoints);
 
-		imshow( WINDOW3, drawing );
-		waitKey(3);
-
-	    return drawing;
+		return drawing;
 	}
 
-	void drawErrorImage()
+	void drawErrorImage(bool showImg)
 	{
 		Mat imageDraw = Mat::zeros( binary_Img.rows, binary_Img.cols, CV_8UC3);
 		line(imageDraw, Point(0,0),Point(binary_Img.cols - 1, binary_Img.rows - 1), Scalar(0,0,255), 2);
 		line(imageDraw, Point(binary_Img.cols - 1,0),Point(0, binary_Img.rows - 1), Scalar(0,0,255), 2);
 
-	    imshow(WINDOW4,imageDraw);
-	    waitKey(3);
+		errorCode = "Error";
+
+		if (showImg){
+			publishImage(imageDraw);
+			//imshow(WINDOW4,imageDraw);
+			//waitKey(3);
+		}
 	}
 
-	void drawImageDetails(Mat img, Point cp_1, Point cp_2, vector<Point> small_circle_Pts, float angle, vector<Point> boxMidPoints, vector<Point> longAxis, Point shortLoc)
+	void drawImageDetails(Mat img, Point cp_1, Point cp_2, vector<Point> small_circle_Pts, float angle, vector<Point> boxMidPoints, vector<Point> longAxis, Point shortLoc, bool showImg)
 	{
 		Mat imageDraw = Mat::zeros( img.rows, img.cols, CV_8UC3);
 		cvtColor(img, imageDraw, CV_GRAY2BGR);
@@ -780,17 +893,24 @@ public:
 		circle(imageDraw, cp_1, 2, Scalar(255,255,0),2);
 		circle(imageDraw, cp_2, 2, Scalar(255,0,255),2);
 
+		//ROS_ERROR("Here1");
 		for(int ii = 0; ii < small_circle_Pts.size(); ii++){
 			circle(imageDraw, small_circle_Pts[ii], 2, Scalar(128,255,0),2);
 		}
-
+		//ROS_ERROR("Here2");
 		for(int ii = 0; ii < boxMidPoints.size(); ii++){
 			circle(imageDraw, boxMidPoints[ii], 2, Scalar(128,0,255),2);
 		}
 
-		line(imageDraw, Point(longAxis.at(0).x,longAxis.at(0).y), Point(longAxis.at(1).x,longAxis.at(1).y), Scalar(0,255,0),2);
+		//ROS_ERROR("Here3");
+		if (longAxis.size() != 0){
+			line(imageDraw, Point(longAxis.at(0).x,longAxis.at(0).y), Point(longAxis.at(1).x,longAxis.at(1).y), Scalar(0,255,0),2);
+		}
 
-		circle(imageDraw, shortLoc, 5, Scalar(0,0,255), 3);
+		//ROS_ERROR("Here4");
+		if (shortLoc.x != 0.0 && shortLoc.y != 0.0){
+			circle(imageDraw, shortLoc, 5, Scalar(0,0,255), 3);
+		}
 
 		angle = round((double)angle);
 		if (angle > 360){
@@ -800,67 +920,72 @@ public:
 		ss << angle;
 
 		string angle_Str = ss.str();
-
+		//ROS_ERROR("Here5");
 		putText(imageDraw, angle_Str, Point(10, imageDraw.rows*.98), FONT_HERSHEY_SCRIPT_SIMPLEX, 1.0, Scalar(0,0,255), 2);
 
+		if (showImg){
+			//imshow(WINDOW4,imageDraw);
+			//waitKey(3);
+			publishImage(imageDraw);
+		}
+	}
 
-	    imshow(WINDOW4,imageDraw);
-	    waitKey(3);
+	void publishImage(Mat img)
+	{
+		image_transport::Publisher pub = it_.advertise("Processed_Pump_Image", 1);
+		sensor_msgs::ImagePtr msg;
+
+		cv_bridge::CvImage out_msg;
+		//out_msg.header   = img->header;
+		out_msg.encoding = "bgr8";
+		out_msg.image    = img;
+
+		ros::Rate loop_rate(5);
+		while (nh_.ok()) {
+			pub.publish(out_msg.toImageMsg());
+			ros::spinOnce();
+			loop_rate.sleep();
+		}
 	}
 
 	void processPumpImage(const sensor_msgs::ImageConstPtr& msg)
 	{
-		//sensor_msgs::CvBridge bridge;
-		//ROS_INFO("Here!!!!1");
+		errorCode = "Detected";
 
-
-		//try
-		//{
-
-		//sensor_msgs::CvBridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
-		//cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
 		cv_bridge::CvImagePtr cv_ptr;
 		cv_ptr = cv_bridge::toCvCopy(msg,"bgr8");
 
-		//imshow(WINDOW1, cv_ptr->image);
-		//waitKey(3);
-
-
 		Mat img = cv_ptr->image;
-		//imshow(WINDOW4,img);
-		//waitKey(3);
 
 		input_Img = resize_Mono_Img(img);
 
+		create_binary_image(threshold_Value);//225
 
-		create_binary_image(220);//225
+		//imshow(WINDOW1, binary_Img);
+		//waitKey(3);
+		//return;
+
 		initial_morph_Process_Image();
 
 		convolveCircluarFilters_With_PumpImg();
 
-        int threshVal = calculate_Small_Circle_Thresh(smallCircle_Located, 0.75);
-
-		smallCircle_Located = create_binary_image_Return(smallCircle_Located, (double)threshVal);
-		//imshow(WINDOW4, smallCircle_Located);
-		//waitKey(3);
-
 		smallCircle_Located = dialte_Image(smallCircle_Located, diltation_Element);
-		//imshow(WINDOW1, pump_IP.smallCircle_Located);
-		//waitKey(0);
+		smallCircle_Located = dialte_Image(smallCircle_Located, diltation_Element);
 
 		smallCircle_Located = shrink_Binary_Image(smallCircle_Located);
 
+		largeCircle_Located = dialte_Image(largeCircle_Located, diltation_Element);
+		largeCircle_Located = dialte_Image(largeCircle_Located, diltation_Element);
+		largeCircle_Located = shrink_Binary_Image(largeCircle_Located);
+
 		pump_Small_Hole_Points = extract_Pump_Hole_Points(smallCircle_Located);
-
-		//imshow(WINDOW4, smallCircle_Located);
-		//waitKey(3);
-
 
 		bool objectDetected = false;
 		if (pump_Small_Hole_Points.size() > 0){
 			Pump_Intersection_Small = locatePumpIntersectionSmall(pump_Small_Hole_Points);
 			objectDetected = true;
 		} else{
+			errorCode = "Error";
 			ROS_ERROR("Could not locate small hole intersection!");
 		}
 
@@ -870,17 +995,20 @@ public:
 				objectDetected = true;
 			}else{
 				objectDetected = false;
+				errorCode = "Error";
 				ROS_ERROR("Could not locate corresponding small holes!");
 			}
 		}
 
 		if (objectDetected){
+			ROS_ERROR("Here1");
 			Pump_Intersection_Large = locatePumpIntersectionLarge(largeCircle_Located);
 			center_Calc_Dist = calculateCenters_Distances(Pump_Intersection_Large, Pump_Intersection_Small);
 		}
 
-		if (center_Calc_Dist > center_Max_Dist){
+		if (objectDetected && (center_Calc_Dist > center_Max_Dist)){
 			objectDetected = false;
+			errorCode = "Error";
 			ROS_ERROR("Center calculated distance (%f) is too far (%f)!", center_Calc_Dist, center_Max_Dist);
 		}
 
@@ -894,22 +1022,69 @@ public:
 			zero_Side = findShortestPointDistance(pump_Small_Hole_Points, pump_LongAxis_Points);
 		}
 
-		if (point_Line_Distance < max_point_Line_Distance){
-			ROS_ERROR("Point-line distance: %f", point_Line_Distance);
+		if (objectDetected && (fabs(point_Line_Distance) < max_point_Line_Distance)){
+			//ROS_ERROR("Point-line distance: %f", point_Line_Distance);
 			objectDetected = true;
 		}else{
 			objectDetected = false;
+			errorCode = "Error";
 			ROS_ERROR("Line to point distance (%f) is too far (%f)!", point_Line_Distance, max_point_Line_Distance);
 		}
 
+		//objectDetected = true;
+
 		if (objectDetected){
+			//ROS_ERROR("Here2");
 			Point imgSide = Point(binary_Img.cols, Pump_Intersection_Small.y);
-			calculatedAngle = calc_VectorAngle(Pump_Intersection_Small, imgSide, zero_Side);
-			drawImageDetails(input_Img, Pump_Intersection_Large, Pump_Intersection_Small, pump_Small_Hole_Points, calculatedAngle, extracted_Pump_MidPoints, pump_LongAxis_Points, zero_Side);
+			//calculatedAngle = calc_VectorAngle(Pump_Intersection_Small, imgSide, zero_Side);
+			calculatedAngle = calc_VectorAngle(Pump_Intersection_Large, imgSide, zero_Side);
+			drawImageDetails(input_Img, Pump_Intersection_Large, Pump_Intersection_Small, pump_Small_Hole_Points, calculatedAngle, extracted_Pump_MidPoints, pump_LongAxis_Points, zero_Side, true);
 		}else{
-			drawErrorImage();
+			drawErrorImage(true);
+		}
+	}
+
+	bool service_CB(mantis_perception::mantis_recognition::Request &main_request,
+			mantis_perception::mantis_recognition::Response &main_response)
+	{
+		sensor_msgs::ImageConstPtr acquired_Img = ros::topic::waitForMessage<sensor_msgs::Image>("prosilica/image_color", nh_);
+
+		try{
+			processPumpImage(acquired_Img);
+		}catch(int a){
+			calculatedAngle = -1;
+			errorCode = "Error";
 		}
 
+		main_response.pose.rotation = calculatedAngle;
+		main_response.label = errorCode;
+
+		return true;
+	}
+
+	void initializePumpOrientationService()
+	{
+		ros::NodeHandle nh_private_("~");
+
+		nh_private_.param("Pump_Large_Filter_Width", circle_Width_Large, int(3));
+		nh_private_.param("Pump_Small_Filter_Width", circle_Width_Small, int(2));
+
+		nh_private_.param("Pump_Large_Filter_Radius", largeRad, int(179));
+		nh_private_.param("Pump_Small_Filter_Radius", smallRad, int(45));
+
+		nh_private_.param("Max_Center_Dist", center_Max_Dist, double(20.0));
+		nh_private_.param("Max_Point_To_Line_Dist", max_point_Line_Distance, double(10.0));
+		nh_private_.param("Pump_Holes_To_Center_Dist", outer_Circle_To_Center_Dist, int(110));
+
+		nh_private_.param("Binary_Threshold", threshold_Value, int(205));
+
+		//ROS_ERROR("%d", threshold_Value);
+
+		create_Circular_Filters();
+		create_Dilation_Element(3);
+
+		pump_Angle_Service_ = nh_.advertiseService("/pump_orientation_detection",&pump_image_processing::service_CB, this);
+		//ros::spin();
 	}
 
 };
@@ -923,25 +1098,8 @@ int main(int argc, char** argv)
 
   pump_image_processing pump_IP;
 
+  pump_IP.initializePumpOrientationService();
 
-  pump_IP.largeKernal_Size = 375; //391
-  pump_IP.smallKernal_Size = 95;//105
-
-  pump_IP.circle_Width_Large = 1;
-  pump_IP.circle_Width_Small = 2;
-  pump_IP.largeRad = 185;  //182
-  pump_IP.smallRad = 47; //44
-
-  pump_IP.center_Max_Dist = 20;
-  pump_IP.max_point_Line_Distance = 10;
-
-  pump_IP.Flange_Center_Distance = 214;
-  pump_IP.outer_Circle_To_Center_Dist = 115; //115
-
-  pump_IP.threshhold_Value = 235;
-
-  pump_IP.create_Circular_Filters();
-  pump_IP.create_Dilation_Element(3);
   ros::spin();
 
   return 0;
