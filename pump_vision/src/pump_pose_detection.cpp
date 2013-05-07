@@ -152,19 +152,13 @@ public:
 		}
 	}
 
-	Mat shrink_Binary_Image(Mat img)
+	Mat shrink_Binary_Image(Mat img, bool leaveSingleBlob)
 	{
 		Mat imgSweep = Mat::zeros(img.rows,img.cols, CV_8UC1);
 
 		try{
 			int s = img.step;
 			int c = img.channels();
-
-			//for (int ii = 0; ii < imgSweep.rows; ii++){
-			//	for (int jj = 0; jj < imgSweep.cols; jj++){
-			//		imgSweep.data[ii*s+jj*c+0] = img.data[ii*s+jj*c+0];
-			//	}
-			//}
 
 			vector<vector<Point> > contours;
 
@@ -173,73 +167,36 @@ public:
 			findContours( img, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 			//ROS_ERROR("Here2");
 			vector<Moments> mu(contours.size() );
+			vector<double> areas(contours.size());
+
 			for( int i = 0; i < contours.size(); i++ ){
-				//if (contours[i].size() > 5){
-					mu[i] = moments( contours[i], false );
-				//}
+				mu[i] = moments( contours[i], false );
+				areas[i] = contourArea(contours[i]);
 			}
-			//ROS_ERROR("Here3");
+
+			double max_Area = 0.0;
+			int iteration_Max_Size = 0;
 			///  Get the mass centers:
 			vector<Point2f> mc( contours.size() );
 			for( int i = 0; i < contours.size(); i++ ){
 				mc[i] = Point2f( mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 );
-				//ROS_ERROR("%f, %f", mc[i].x, mc[i].y);
+				if (areas[i] > max_Area){
+					max_Area = areas[i];
+					iteration_Max_Size = i;
+				}
 			}
-			//ROS_ERROR("Here4");
-			for (int ii = 0; ii < contours.size(); ii++){
-				int x = (int)mc[ii].x;
-				int y = (int)mc[ii].y;
+			if (!leaveSingleBlob){
+				for (int ii = 0; ii < contours.size(); ii++){
+					int x = (int)mc[ii].x;
+					int y = (int)mc[ii].y;
+					imgSweep.data[y*s+x*c+0] = 255;
+				}
+			}else{
+				int x = (int)mc[iteration_Max_Size].x;
+				int y = (int)mc[iteration_Max_Size].y;
 				imgSweep.data[y*s+x*c+0] = 255;
 			}
-			//ROS_ERROR("Here3");
-			//ROS_ERROR("Here5");
-			//ROS_ERROR("_");
-			/*
-			bool stillProcessing = true;
 
-			int mx = 0;
-			for (int ii = 0; ii < 500; ii++){
-				if(stillProcessing){
-					stillProcessing = false;
-					for (int jj = 1; jj < img.rows -1; jj++){
-						for (int kk = 1; kk < img.cols - 1; kk++){
-							if (imgSweep.data[jj*s + kk*c + 0] == 255){
-								int v1 = imgSweep.data[(jj-1)*s+(kk-1)*c+0];
-								int v2 = imgSweep.data[(jj-1)*s+(kk)*c+0];
-								int v3 = imgSweep.data[(jj-1)*s+(kk+1)*c+0];
-								int v4 = imgSweep.data[(jj)*s+(kk-1)*c+0];
-								int v5 = imgSweep.data[(jj)*s+(kk+1)*c+0];
-								int v6 = imgSweep.data[(jj+1)*s+(kk-1)*c+0];
-								int v7 = imgSweep.data[(jj+1)*s+(kk)*c+0];
-								int v8 = imgSweep.data[(jj+1)*s+(kk+1)*c+0];
-								int v0 = imgSweep.data[(jj)*s+(kk)*c+0];
-								int val = (v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v0)/255;
-								if (val > mx){
-									mx = val;
-								}
-								if ((val > 3) && (val < 9)){
-									stillProcessing = true;
-									imgInternal.data[jj*s+kk*c+0] = 0;
-								}
-							}
-						}
-					}
-
-					//for (int ll = 0; ll < imgSweep.rows; ll++){
-					//	for (int mm = 0; mm < imgSweep.cols; mm++){
-					//		imgSweep.data[(ll)*s+(mm)*c+0] = imgInternal.data[ll*s+mm*c+0];
-					//	}
-					//}
-
-
-				}else{
-					ROS_ERROR("Iteration: %d",ii);
-					ii = 499;
-				}
-				//imgSweep.data = imgInternal.data;
-			}
-			ROS_ERROR("%d", mx);
-			*/
 		}catch(int a){
 			errorCode = "Error";
 			ROS_ERROR("Cannot shrink binary image.");
@@ -972,11 +929,11 @@ public:
 		smallCircle_Located = dialte_Image(smallCircle_Located, diltation_Element);
 		smallCircle_Located = dialte_Image(smallCircle_Located, diltation_Element);
 
-		smallCircle_Located = shrink_Binary_Image(smallCircle_Located);
+		smallCircle_Located = shrink_Binary_Image(smallCircle_Located, false);
 
 		largeCircle_Located = dialte_Image(largeCircle_Located, diltation_Element);
 		largeCircle_Located = dialte_Image(largeCircle_Located, diltation_Element);
-		largeCircle_Located = shrink_Binary_Image(largeCircle_Located);
+		largeCircle_Located = shrink_Binary_Image(largeCircle_Located, true);
 
 		pump_Small_Hole_Points = extract_Pump_Hole_Points(smallCircle_Located);
 
