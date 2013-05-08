@@ -1,0 +1,47 @@
+<!--
+Starts a PR2 Prosilica camera in streaming mode.
+This file exists mainly for backwards compatibility.
+-->
+
+<launch>
+
+  <param name="/prosilica_driver/gain_auto_max" value="22"/>	
+  <param name="/prosilica_driver/auto_gain" value="false"/>
+  <param name="/prosilica_driver/auto_exposure" value="false"/>
+
+  <include file="$(find prosilica_camera)/launch/generic.launch">
+    <arg name="camera"       value="prosilica" />
+    <!--arg name="ip_address"   value="169.254.20.143" /-->
+    <arg name="ip_address"   value="169.254.99.178" />
+    <arg name="trigger_mode" value="streaming" />
+    <arg name="frame_id"     value="high_def_optical_frame" />
+    
+    <!--rosparam command="load" file="$(find prosilica_camera)/cam_settings.yaml"/-->
+  </include>
+
+ <node pkg="nodelet" type="nodelet" name="image_proc"  args="manager"/>
+ <node pkg="nodelet" type="nodelet" name="db" args="load image_proc/debayer image_proc">
+    <remap from="image_raw"   to="prosilica/image_raw"/>
+    <remap from="image_color" to="prosilica/image_color"/>
+    <remap from="image_mono"  to="prosilica/image_mono"/>
+  </node>
+
+  <node pkg="pump_vision" type="pump_pose_detection" name="pump_detect" output="screen">
+  <rosparam>
+    Pump_Large_Filter_Width: 5
+    Pump_Small_Filter_Width: 5
+    Pump_Large_Filter_Radius: 179
+    Pump_Small_Filter_Radius: 45
+    Max_Center_Dist: 20.0
+    Max_Point_To_Line_Dist: 10.0
+    Pump_Holes_To_Center_Dist: 110
+    Binary_Threshold: 210
+  </rosparam>
+  </node>
+
+
+
+  <node pkg="image_view" type="image_view" name="raw_view" args="image:=/prosilica/image_raw"/>
+
+
+</launch>
