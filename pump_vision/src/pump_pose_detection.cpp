@@ -162,10 +162,8 @@ public:
 
 			vector<vector<Point> > contours;
 
-			//findContours( img, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
-			//ROS_ERROR("Here1");
 			findContours( img, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-			//ROS_ERROR("Here2");
+
 			vector<Moments> mu(contours.size() );
 			vector<double> areas(contours.size());
 
@@ -288,9 +286,9 @@ public:
 		}
 
 		//imshow(WINDOW1, largeCircle_Located);
-		//waitKey(3);
-		//imshow(WINDOW2, smallCircle_Located);
-		//waitKey(3);
+		//waitKey(3000);
+		//imshow(WINDOW1, smallCircle_Located);
+		//waitKey(3000);
 	}
 
 	Mat createConstantImage(Mat img, int val)
@@ -897,15 +895,19 @@ public:
 		out_msg.encoding = "bgr8";
 		out_msg.image    = img;
 
+		//imshow(WINDOW1, img);
+		//waitKey(3000);
+		/*
 		ros::Rate loop_rate(5);
 		while (nh_.ok()) {
 			pub.publish(out_msg.toImageMsg());
 			ros::spinOnce();
 			loop_rate.sleep();
 		}
+		*/
 	}
 
-	void processPumpImage(const sensor_msgs::ImageConstPtr& msg)
+	bool processPumpImage(const sensor_msgs::ImageConstPtr& msg)
 	{
 		errorCode = "Detected";
 
@@ -944,6 +946,7 @@ public:
 		} else{
 			errorCode = "Error";
 			ROS_ERROR("Could not locate small hole intersection!");
+			return false;
 		}
 
 		if (objectDetected){
@@ -954,11 +957,11 @@ public:
 				objectDetected = false;
 				errorCode = "Error";
 				ROS_ERROR("Could not locate corresponding small holes!");
+				return false;
 			}
 		}
 
 		if (objectDetected){
-			ROS_ERROR("Here1");
 			Pump_Intersection_Large = locatePumpIntersectionLarge(largeCircle_Located);
 			center_Calc_Dist = calculateCenters_Distances(Pump_Intersection_Large, Pump_Intersection_Small);
 		}
@@ -967,6 +970,7 @@ public:
 			objectDetected = false;
 			errorCode = "Error";
 			ROS_ERROR("Center calculated distance (%f) is too far (%f)!", center_Calc_Dist, center_Max_Dist);
+			return false;
 		}
 
 		if (objectDetected){
@@ -986,6 +990,7 @@ public:
 			objectDetected = false;
 			errorCode = "Error";
 			ROS_ERROR("Line to point distance (%f) is too far (%f)!", point_Line_Distance, max_point_Line_Distance);
+			return false;
 		}
 
 		//objectDetected = true;
@@ -995,9 +1000,11 @@ public:
 			Point imgSide = Point(binary_Img.cols, Pump_Intersection_Small.y);
 			//calculatedAngle = calc_VectorAngle(Pump_Intersection_Small, imgSide, zero_Side);
 			calculatedAngle = calc_VectorAngle(Pump_Intersection_Large, imgSide, zero_Side);
-			drawImageDetails(input_Img, Pump_Intersection_Large, Pump_Intersection_Small, pump_Small_Hole_Points, calculatedAngle, extracted_Pump_MidPoints, pump_LongAxis_Points, zero_Side, true);
+			drawImageDetails(input_Img, Pump_Intersection_Large, Pump_Intersection_Small, pump_Small_Hole_Points, calculatedAngle, extracted_Pump_MidPoints, pump_LongAxis_Points, zero_Side, false);
+			return true;
 		}else{
-			drawErrorImage(true);
+			drawErrorImage(false);
+			return false;
 		}
 	}
 
@@ -1006,9 +1013,9 @@ public:
 	{
 		sensor_msgs::ImageConstPtr acquired_Img = ros::topic::waitForMessage<sensor_msgs::Image>("prosilica/image_color", nh_);
 
-		try{
-			processPumpImage(acquired_Img);
-		}catch(int a){
+		if (processPumpImage(acquired_Img)){
+
+		}else{
 			calculatedAngle = -1;
 			errorCode = "Error";
 		}
