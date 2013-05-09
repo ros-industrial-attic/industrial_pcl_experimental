@@ -131,7 +131,7 @@ int main(int argc, char ** argv)
   mapper->GetBounds(bb);
   double ms = (std::max)((std::fabs)(bb[0] - bb[1]),
                          (std::max)((std::fabs)(bb[2] - bb[3]), (std::fabs)(bb[4] - bb[5])));
-  double max_side = pos_z_ / 2.0;
+  double max_side = radius_sphere_ / 2.0;
   double scale_factor = max_side / ms;
 
   vtkSmartPointer<vtkTransform> trans_scale = vtkSmartPointer<vtkTransform>::New();
@@ -162,12 +162,12 @@ int main(int argc, char ** argv)
   vtkSmartPointer<vtkPolyData> sphere = vtkSmartPointer<vtkPolyData>::New();
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
   //vtkSmartPointer<vtkCellArray> pts = vtkSmartPointer<vtkCellArray>::New();
-  for (int i = 1; i < 10; i++)
+  for (int i = 0; i < 10; i++)
    {
    int angle = i * 36;
    double x = cos(angle * 3.15159 / 180);
    double y = sin(angle * 3.15159 / 180);
-   pts->InsertPoint(i, y, x, radius_sphere_);
+   pts->InsertPoint(i, y, x, 2);
    }
    //pts->InsertPoint(0, 4, 0.403536, 0.652936);
    pts->Modified();

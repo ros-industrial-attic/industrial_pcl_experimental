@@ -160,7 +160,8 @@ public:
   double cg_thresh_; //correspondence grouping clustering threshold
   double descr_nn_thresh_; //max distance between descriptors in nn search
   bool use_hough_; //true if using Hough for clustering correspondences, false if using geometric consistency
-  double rf_rad_; //reference frame estimation radius for Hough
+  double rf_rad_m_; //reference frame estimation radius for Hough - model
+  double rf_rad_s_; //reference frame estimation radius for Hough - scene
   bool use_uniform_sampling_; //true if using Uniform Sampling for keypoint extraction, false if using SIFT keypoints
   double min_scale_; //parameter for SIFT
   int nr_octaves_; //parameter for SIFT
@@ -193,7 +194,7 @@ public:
 
   RecognitionNode(ros::NodeHandle nh) :
       nh_(nh), priv_nh_("~"), model_ss_(0.01), scene_ss_(0.03), descr_rad_(0.02), cg_size_(0.01), cg_thresh_(5.0), descr_nn_thresh_(
-          0.25), use_hough_(false), rf_rad_(0.015), use_uniform_sampling_(true), min_scale_(0.0005), nr_octaves_(4), nr_scales_per_octave_(
+          0.25), use_hough_(false), rf_rad_m_(0.015), rf_rad_s_(0.015),use_uniform_sampling_(true), min_scale_(0.0005), nr_octaves_(4), nr_scales_per_octave_(
           5), min_contrast_(1), use_VFH_(true), use_SACICP_(true), min_sample_distance_(0.0), nr_iterations_(3), transformation_epsilon_(
           0.0), max_iterations_(1000), max_corr_distance_(0.05), x_filter_min_(-1.0), x_filter_max_(1.0), y_filter_min_(
           -1.0), y_filter_max_(1.0), z_filter_min_(-1.0), z_filter_max_(1.0), tesselation_level_(1), tess_view_angle_(
@@ -250,7 +251,8 @@ public:
     priv_nh_.getParamCached("descr_nn_thresh", descr_nn_thresh_);
     priv_nh_.getParam("use_hough", use_hough_);
     //priv_nh_.getParam("rf_radius", rf_rad_);
-    priv_nh_.getParamCached("rf_radius", rf_rad_);
+    priv_nh_.getParamCached("rf_radius_m", rf_rad_m_);
+    priv_nh_.getParamCached("rf_radius_s", rf_rad_s_);
     priv_nh_.getParam("use_SACICP", use_SACICP_);
     priv_nh_.getParam("use_uniform_sampling", use_uniform_sampling_);
     priv_nh_.getParam("use_VFH", use_VFH_);
@@ -291,7 +293,9 @@ public:
     ROS_INFO_STREAM("descr_nn_thresh: " << descr_nn_thresh_);
     ROS_INFO_STREAM("Using Hough for clustering: " << use_hough_);
     ROS_INFO_STREAM("Using Uniform Sampling for keypoints: " << use_uniform_sampling_);
-    ROS_INFO_STREAM("RF radius: " << rf_rad_);
+    ROS_INFO_STREAM("RF radius for model: " << rf_rad_m_);
+    ROS_INFO_STREAM("RF radius for scene: " << rf_rad_s_);
+
 
     if (STATFILE_.is_open())
     {
@@ -773,18 +777,20 @@ public:
       if (use_hough_)
       {
         ros::Time hough_start = ros::Time::now();
-        priv_nh_.getParamCached("rf_radius", rf_rad_);
+        priv_nh_.getParamCached("rf_radius", rf_rad_m_);
+        priv_nh_.getParamCached("rf_radius", rf_rad_s_);
         pcl17::PointCloud<RFType>::Ptr model_rf(new pcl17::PointCloud<RFType>());
         pcl17::PointCloud<RFType>::Ptr scene_rf(new pcl17::PointCloud<RFType>());
         pcl17::BOARDLocalReferenceFrameEstimation<PointType, NormalType, RFType> rf_est;
         rf_est.setFindHoles(true);
-        rf_est.setRadiusSearch(rf_rad_);
+        rf_est.setRadiusSearch(rf_rad_m_);
 
         rf_est.setInputCloud(model_kp_ptr);
         rf_est.setInputNormals(model_norm_ptr);
         rf_est.setSearchSurface(model_pt_ptr);
         rf_est.compute(*model_rf);
 
+        rf_est.setRadiusSearch(rf_rad_s_);
         rf_est.setInputCloud(scene_kp_ptr);
         rf_est.setInputNormals(scene_norm_ptr);
         rf_est.setSearchSurface(scene_pt_ptr);
