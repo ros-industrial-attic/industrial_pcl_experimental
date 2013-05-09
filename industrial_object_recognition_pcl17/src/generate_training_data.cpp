@@ -79,7 +79,16 @@ int main(int argc, char ** argv)
   pdata->Allocate(poly_mapper->GetInput());
   polydata = poly_mapper->GetInput();
 
-  ROS_INFO_STREAM("polydata allocated");
+/*
+ * Most of the rest of this code was taken from:
+ * http://ros.org/rosdoclite/groovy/api/pcl/html/render__views__tesselated__sphere_8cpp_source.html
+ * The same code is written below with three exceptions
+ * 1) No icosahedron, specified points instead
+ * 2) save resultant clouds to .pcd
+ * 3) save resultant pose info to .csv
+ */
+
+
 
   double CoM[3];
   vtkIdType npts_com = 0, *ptIds_com = NULL;
