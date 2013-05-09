@@ -28,7 +28,7 @@ This file exists mainly for backwards compatibility.
 
   <node pkg="pump_vision" type="pump_pose_detection" name="pump_detect" output="screen">
   <rosparam>
-    Pump_Large_Filter_Width: 5
+    Pump_Large_Filter_Width: 4
     Pump_Small_Filter_Width: 5
     Pump_Large_Filter_Radius: 179
     Pump_Small_Filter_Radius: 45
