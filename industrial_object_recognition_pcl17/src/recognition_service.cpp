@@ -78,7 +78,7 @@ typedef pcl17::SHOT352 Descriptor1Type;
 typedef pcl17::VFHSignature308 Descriptor2Type;
 
 const std::string TABLETOP_SEGMENTATION = "ur5_arm/tabletop_segmentation";
-std::ofstream STATFILE_("/home/cgomez/Desktop/pose_measurements.csv");
+std::ofstream STATFILE_("/home/jnicho/Desktop/pose_measurements.csv");
 
 // Internal classes for organizing data
 class CloudData
@@ -299,8 +299,8 @@ public:
 
     if (STATFILE_.is_open())
     {
-      STATFILE_ << "TF(0 0), TF(1 0), TF(2 0), TF(0 1), TF(1 1), TF(2 1), "
-          "TF(0 2), TF(1 2), TF(2 2),  TF(0 3), TF(1 3), TF(2 3)  \n";
+      STATFILE_ << "Roll, Pitch, Yaw, "
+          "x, y, z  \n";
     }
     else
     {
@@ -495,6 +495,7 @@ public:
   bool initCloudData(float radius_search, std::string & name, std::string & source_name,
                      pcl17::PointCloud<PointType> & cloud, CloudData & data)
   {
+	ROS_INFO_STREAM("Inside initCloudData");
     // Clear out an existing data
     data = CloudData();
 
@@ -594,15 +595,17 @@ public:
   bool recognizeModel(pcl17::PointCloud<PointType> & scene, Recognizer & rec)
   {
     ROS_INFO_STREAM("#####################################################");
-    bool success;
+    bool success(false);
     std::string name("scene");
     std::string source_name("streaming");
 
     rec.rec_data_.cluster_corrs.clear();
     rec.rec_data_.model_scene_corrs.clear();
     rec.rec_data_.percent_match_ = 0.0;
+    ROS_INFO_STREAM("Things initialized for scene");
     ros::Time init_scene_start = ros::Time::now();
     initCloudData(scene_ss_, name, source_name, scene, rec.rec_data_.scene_);
+    ROS_INFO_STREAM("scene data initialized");
     ros::Time init_scene_finish = ros::Time::now();
     ros::Duration init_scene_total = init_scene_finish - init_scene_start;
     ROS_INFO_STREAM("First pass over scene for VFH descriptors took "<< init_scene_total<<" s");
@@ -962,12 +965,21 @@ public:
         ROS_INFO_STREAM("Model roll, pitch, yaw: "<< roll <<", " <<pitch<<", "<<yaw);
 
         //POSE OF ROTOTRANSLATION
-        Eigen::Matrix3f rotation = rototranslations[j].block<3, 3>(0, 0);
+
+        Eigen::Matrix4d roto_double(rototranslations[j].cast<double>());
+          Eigen::Affine3d affine(roto_double);
+          tf::Transform tf_rototrans;
+          tf::TransformEigenToTF(affine, tf_rototrans);
+
+        /*Eigen::Matrix3f rotation = rototranslations[j].block<3, 3>(0, 0);
         Eigen::Vector3f translation = rototranslations[j].block<3, 1>(0, 3);
+        ROS_INFO_STREAM("ROTOTRANS Eigen translation (x, y, z): ");
+
 
         tf::Matrix3x3 tf_matrix;
-        tf_matrix.setValue(rotation(0, 0), rotation(0, 1), rotation(0, 2), rotation(1, 0), rotation(1, 1),
-                           rotation(1, 2), rotation(2, 0), rotation(2, 1), rotation(2, 2));
+        tf_matrix.setValue(rotation(0, 0), rotation(0, 1), rotation(0, 2),
+        		           rotation(1, 0), rotation(1, 1), rotation(1, 2),
+        		           rotation(2, 0), rotation(2, 1), rotation(2, 2));
         tf::Vector3 tf_translation;
         tf_translation.setValue(translation(0), translation(1), translation(2));
 
@@ -978,10 +990,27 @@ public:
         tf::Transform tf_rototrans;
         tf_rototrans.setRotation(tf_quat);
         tf_rototrans.setOrigin(tf_translation);
-        //ROS_INFO_STREAM("Rototranslation origin: "<< tf_translation.x()<<", " <<tf_translation.y()<<", "<<tf_translation.z());
-
+        ROS_INFO_STREAM("Rototranslation origin: "<< tf_translation.x()<<", " <<tf_translation.y()<<", "<<tf_translation.z());
+*/
         //Part pose in passed in frame (world_frame)
         part_pose_ = tf_rototrans * tf_model;
+
+        tf::Vector3 part_pose_xy = part_pose_.getOrigin();
+        ROS_INFO_STREAM("Part pose origin at (x, y, z): "<<part_pose_xy.x()<<", "<<part_pose_xy.y()<<
+                		", "<<part_pose_xy.z());
+        //CHECK POSITION TO SEE IF OFF TABLE
+        if (part_pose_xy.x()<-1.2 || part_pose_xy.x()>0 || part_pose_xy.y()>1.2 || part_pose_xy.y()<-0.2)
+        {
+        	ROS_WARN_STREAM("Part pose origin at (x, y, z): "<<part_pose_xy.x()<<", "<<part_pose_xy.y()<<
+        		", "<<part_pose_xy.z());
+        	part_pose_.setIdentity();
+        	part_pose_= tf_model * tf_rototrans;
+        	tf::Vector3 part_pose_xyn = part_pose_.getOrigin();
+        	ROS_WARN_STREAM("Part pose origin at (x, y, z): "<<part_pose_xyn.x()<<", "<<part_pose_xyn.y()<<
+        	        		", "<<part_pose_xyn.z());
+        	part_pose_.setIdentity();
+
+        }
 
         //CHECK ANGLE OF POSE TO SEE IF CLOSE TO VERTICAL
         tf::Vector3 vect(0.0f, 0.0f, -1.0f);
@@ -1009,11 +1038,9 @@ public:
         ROS_INFO_STREAM("Using modulus and logic, diff between z and world: "<<diff_from_vert);
 
         //part pose with tool offset
-        //gripper_pose_.setIdentity();
-        tf::Vector3 part_pose_xy = part_pose_.getOrigin();
         gripper_pose_.setOrigin(tf::Vector3(part_pose_xy.x(), part_pose_xy.y(), 0.080));				//part_pose_xy.z()
         tf::Quaternion grip_q;
-        //tf::Quaternion part_q = part_pose_.getRotation();
+        /*//tf::Quaternion part_q = part_pose_.getRotation();
         tf::Matrix3x3 part_r, grip_r;
         part_r = part_pose_.getBasis();
         tf::Vector3 x_v_p = part_r.getColumn(0);
@@ -1035,7 +1062,9 @@ public:
         //grip_r.getRotation(grip_q);
         grip_q.setRPY(gripper_roll, gripper_pitch, gripper_yaw);
         gripper_pose_.setRotation(grip_q);
-        //gripper_pose_.setBasis(grip_r);
+        //gripper_pose_.setBasis(grip_r);*/
+        grip_q.setRPY(3.14159, -0, 0);
+        gripper_pose_.setRotation(grip_q);
 
         tf::Transform tf_trans_ee;
         tf_trans_ee.setIdentity();
@@ -1071,7 +1100,8 @@ public:
         tf::Matrix3x3 grip_rot_check = gripper_pose_.getBasis();
         tf::Vector3 grip_x_vect = grip_rot_check.getColumn(0);
 
-        part_rot_ = part_x_vect.angle(world_x_vect);
+        //part_rot_ = part_x_vect.angle(world_x_vect);
+        part_rot_=0;
         ROS_INFO_STREAM(
             "Angle between x component of gripper pose and x in world frame: " << (grip_x_vect.angle(world_x_vect))*180/3.14159);
         ROS_INFO_STREAM("Angle between x component of part pose and x in world frame: " << part_rot_*180/3.14159);
@@ -1375,6 +1405,7 @@ public:
           ros::Time rec_total_start = ros::Time::now();
 
           //if recognize returns true, continue
+          ROS_INFO_STREAM("Scene cloud has "<<f_cloud.points.size());
           acceptable_pose = recognize(f_cloud);
           //acceptable_pose = recognize(yf_cloud);
           //acceptable_pose = recognize(transformed_scene);
@@ -1398,7 +1429,7 @@ public:
             main_response.pose.z = gm_trans.translation.z;
             main_response.pose.rotation = part_rot_;
 
-            tf::Quaternion pose_rot_forfile = gripper_pose_.getRotation();
+            tf::Quaternion pose_rot_forfile = part_pose_.getRotation();
             double roll_file, pitch_file, yaw_file;
             tf::Matrix3x3 matforfile;
             matforfile.setRotation(pose_rot_forfile);
@@ -1407,31 +1438,9 @@ public:
             STATFILE_ << roll_file << ',';
             STATFILE_ << pitch_file << ',';
             STATFILE_ << yaw_file << ',';
-            STATFILE_ << gripper_pose_.getOrigin().x() << ',';
-            STATFILE_ << gripper_pose_.getOrigin().y() << ',';
-            STATFILE_ << gripper_pose_.getOrigin().z() << ',';
-            /*tf::TransformDoubleData tf_dd;
-             part_pose_.serialize(tf_dd);
-             ROS_INFO_STREAM("Part-pose "<<tf_dd.m_basis.m_el[1].m_floats[1]);
-             STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[0]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[1]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[1]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[0].m_floats[3]<< ',' ;
-
-             STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[0]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[1]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[2]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[1].m_floats[3]<< ',' ;
-
-             STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[0]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[1]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[2]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[2].m_floats[3]<< ',' ;
-
-             STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[0]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[1]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[2]<< ',' ;
-             STATFILE_<<tf_dd.m_basis.m_el[3].m_floats[3]<< ',' ;*/
+            STATFILE_ << part_pose_.getOrigin().x() << ',';
+            STATFILE_ << part_pose_.getOrigin().y() << ',';
+            STATFILE_ << part_pose_.getOrigin().z() << ',';
 
             ROS_INFO_STREAM("Sample Number: "<<sample_number_);
             STATFILE_ << sample_number_ << endl;
