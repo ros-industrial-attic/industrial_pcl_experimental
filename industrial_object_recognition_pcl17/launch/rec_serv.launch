@@ -7,20 +7,20 @@
         <param name="ply_model_path" value="$(find industrial_object_recognition_pcl17)"/>
 
     <rosparam>
-      test_mode: true
+      test_mode: false
+      last_sample_number: 139
       topic: "/ur5_arm_kinect/depth_registered/points"<!--avg_filtered_cloud, ur5_arm_kinect/depth_registered/points-->
       world_frame: "/workcell_frame"
       model_list: ["pump_housing.ply"]
-      last_sample_number: 0
-      x_filter_min: -1.00 <!--passthrough filter limits x,y are in world_frame-->
-      x_filter_max: -0.500
-      y_filter_min: 0.155
-      y_filter_max: 0.650
-      z_filter_min: 0.015
+      x_filter_min: -0.998 <!--passthrough filter limits x,y are in world_frame-->
+      x_filter_max: -0.502
+      y_filter_min: 0.045<!---->
+      y_filter_max: 0.560
+      z_filter_min: 0.020
       z_filter_max: 0.3
       x_ee_offset: 0.000 <!--offsets x,y,z are in world_frame-->
       y_ee_offset: 0.000
-      z_ee_offset: 0.0164
+      z_ee_offset: 0.010<!--larger in mag value, deeper in part - 0 if using part pose-->
       tesselation_level: 1
       tess_view_angle: 55 <!--in degrees-->
       tess_radius_sphere: 1.0
@@ -31,24 +31,24 @@
       
       descr_rad: 0.010<!-- search radius for SHOT desc. estimator 0.02-->
 <!--The following are parameters for Uniform Sampling -->
-      model_ss: 0.008 <!-- k nearest search radius for uniform sampling 0.01 -->
-      scene_ss: 0.008 <!-- k nearest search radius for uniform sampling 0.01 -->
+      model_ss: 0.010 <!-- k nearest search radius for uniform sampling 0.01 -->
+      scene_ss: 0.010 <!-- k nearest search radius for uniform sampling 0.01 -->
 <!--The following are parameters for SIFT -->
       min_scale: 0.0005 <!--0.0005 must be strict positive-->
       nr_octaves: 8 <!--4 must be at least 1-->
       nr_scales_per_octave: 10 <!--5 must be at least 1-->
       min_contrast: 0.0001 <!--1 must be non-negative-->
 <!--The following are parameters for both GC and Hough -->
-      cg_size: 0.025<!-- 0.02 Hough Bin Size (1.0) GC consensus resolution (1.0) (used in SACinlier)
+      cg_size: 0.030<!-- 0.02 Hough Bin Size (1.0) GC consensus resolution (1.0) (used in SACinlier)
 According GC to paper, this is euclidean distance threshold, was set to 9.5 mm
 Hough uses it to set reference frame search radius
 Both use CorrespondenceRejectorSampleConsensus -
 Correspondences with distances below the threshold are considered as inliers - 0.05-->
       cg_thresh: -1 <!-- Hough minimum # votes to infer presence of model (-1 assuming model is present)
 GC minimum cluster size (3), if consensus_set.size > cg_thresh, correspondences become model instance -->
-      descr_nn_thresh: 0.30 <!-- 0.25 SHOT descriptors by nature beteween 0.0-1.0, directly influences # correspondences found (bigger => more)-->
-      rf_radius_m: 0.027 <!-- 0.015 -->
-      rf_radius_s: 0.027
+      descr_nn_thresh: 0.37 <!-- 0.25 SHOT descriptors by nature beteween 0.0-1.0, directly influences # correspondences found (bigger => more)-->
+      rf_radius_m: 0.028 <!-- 0.015 -->
+      rf_radius_s: 0.025
 <!--The following are parameters for Registration via RANSAC and ICP -->
            <!--For RANSAC Initial Alignment-->
       min_sample_distance: 0.0

@@ -78,7 +78,8 @@ typedef pcl17::SHOT352 Descriptor1Type;
 typedef pcl17::VFHSignature308 Descriptor2Type;
 
 const std::string TABLETOP_SEGMENTATION = "ur5_arm/tabletop_segmentation";
-std::ofstream STATFILE_("/home/jnicho/Desktop/pose_measurements.csv");
+std::ofstream STATFILE_("/home/jnicho/Desktop/pose_measurements.csv", ios::out | ios::app);
+//STATFILE_.open("/home/jnicho/Desktop/pose_measurements.csv", ios::out | ios::app);
 
 // Internal classes for organizing data
 class CloudData
@@ -1040,7 +1041,7 @@ public:
         //part pose with tool offset
         gripper_pose_.setOrigin(tf::Vector3(part_pose_xy.x(), part_pose_xy.y(), 0.080));				//part_pose_xy.z()
         tf::Quaternion grip_q;
-        /*//tf::Quaternion part_q = part_pose_.getRotation();
+        //tf::Quaternion part_q = part_pose_.getRotation();
         tf::Matrix3x3 part_r, grip_r;
         part_r = part_pose_.getBasis();
         tf::Vector3 x_v_p = part_r.getColumn(0);
@@ -1061,8 +1062,8 @@ public:
         //grip_r.setValue(x_v_p.x(), x_v_p.y(), x_v_p.z(), 0, 1, 0, 0, 0, -1.0f);
         //grip_r.getRotation(grip_q);
         grip_q.setRPY(gripper_roll, gripper_pitch, gripper_yaw);
-        gripper_pose_.setRotation(grip_q);
-        //gripper_pose_.setBasis(grip_r);*/
+        //gripper_pose_.setRotation(grip_q);
+        //gripper_pose_.setBasis(grip_r);
         grip_q.setRPY(3.14159, -0, 0);
         gripper_pose_.setRotation(grip_q);
 
@@ -1095,8 +1096,8 @@ public:
 
         //CHECK ANGLE OF POSE TO SEE IF CLOSE TO VERTICAL
         tf::Vector3 world_x_vect(1.0f, 0.0f, 0.0f);
-        tf::Matrix3x3 part_rot = part_pose_.getBasis();
-        tf::Vector3 part_x_vect = part_rot.getColumn(0);
+        //tf::Matrix3x3 part_rot = part_pose_.getBasis();
+        //tf::Vector3 part_x_vect = part_rot.getColumn(0);
         tf::Matrix3x3 grip_rot_check = gripper_pose_.getBasis();
         tf::Vector3 grip_x_vect = grip_rot_check.getColumn(0);
 
@@ -1106,8 +1107,45 @@ public:
             "Angle between x component of gripper pose and x in world frame: " << (grip_x_vect.angle(world_x_vect))*180/3.14159);
         ROS_INFO_STREAM("Angle between x component of part pose and x in world frame: " << part_rot_*180/3.14159);
 
-        if (diff_from_vert < 10)
+        if (diff_from_vert < 15)
         {
+        	/*
+            //part pose with tool offset
+            gripper_pose_.setOrigin(tf::Vector3(part_pose_xy.x(), part_pose_xy.y(), part_pose_xy.z()));				//part_pose_xy.z()
+            tf::Quaternion grip_q;
+            //tf::Quaternion part_q = part_pose_.getRotation();
+            tf::Matrix3x3 part_r, grip_r;
+            part_r = part_pose_.getBasis();
+            tf::Vector3 x_p = part_r.getColumn(0);
+            tf::Vector3 y_p = part_r.getColumn(1);
+            tf::Vector3 z_p = part_r.getColumn(2);
+            //double part_r, part_p, part_y;
+            //part_r.getEulerYPR(part_y, part_p, part_r);
+            float downward = z_p.angle(vect);
+            if (downward<0.262) // 11degrees
+            {
+            	gripper_pose_=part_pose_;
+            	ROS_INFO_STREAM("Z vector grip: "<<z_p.x()<<", "<<z_p.y()<<", "<<z_p.z());
+            }
+            else
+            {
+            	tf::Quaternion interim_q, part_q;
+            	part_q=part_pose_.getRotation();
+            	interim_q.setRotation(x_p, 3.14159265);
+            	grip_q=interim_q*part_q;
+            	gripper_pose_.setRotation(grip_q);
+            	grip_r=gripper_pose_.getBasis();
+                tf::Vector3 z_g = grip_r.getColumn(2);
+            	ROS_INFO_STREAM("Z vector grip: "<<z_g.x()<<", "<<z_g.y()<<", "<<z_g.z());
+            }
+
+            tf::Transform tf_trans_ee;
+            tf_trans_ee.setIdentity();
+            tf::Vector3 tf_transl_ee;
+            tf_transl_ee.setValue(x_ee_offset_, y_ee_offset_, z_ee_offset_);
+            tf_trans_ee.setOrigin(tf_transl_ee);
+
+            gripper_pose_ = gripper_pose_ * tf_trans_ee;*/
           geometry_msgs::Pose grip_pose_msg;
           tf::poseTFToMsg(gripper_pose_, grip_pose_msg);
           geometry_msgs::PoseStamped grasp_pose_msg;
@@ -1387,7 +1425,7 @@ public:
         pcl17::PointCloud<pcl17::PointXYZ> f_cloud;
         pcl17::copyPointCloud(zf_cloud, *pre_cloud);
         sor.setInputCloud(pre_cloud);
-        sor.setMeanK(20);
+        sor.setMeanK(2);
         sor.setStddevMulThresh(1.0);
         sor.filter(filtered_cloud);
         pcl17::copyPointCloud(filtered_cloud, f_cloud);

@@ -44,7 +44,7 @@ public:
 
 	pump_image_processing(): it_(nh_)
 	{
-		//image_pub_ = it_.advertise("out", 1);
+		image_pub_ = it_.advertise("Processed_Pump_Image", 1);
 		//image_sub_ = it_.subscribe("prosilica/image_color", 1, &pump_image_processing::processPumpImage, this);
 	}
 
@@ -286,9 +286,9 @@ public:
 		}
 
 		//imshow(WINDOW1, largeCircle_Located);
-		//waitKey(3000);
+		//waitKey(5000);
 		//imshow(WINDOW1, smallCircle_Located);
-		//waitKey(3000);
+		//waitKey(5000);
 	}
 
 	Mat createConstantImage(Mat img, int val)
@@ -672,7 +672,7 @@ public:
 		morph_Majority();
 		binary_Removed_Img = morph_Removal(binary_Img);
 		//imshow(WINDOW4,binary_Removed_Img);
-		//waitKey(3);
+		//waitKey(5000);
 	}
 
 	/*
@@ -851,6 +851,7 @@ public:
 		//ROS_ERROR("Here1");
 		for(int ii = 0; ii < small_circle_Pts.size(); ii++){
 			circle(imageDraw, small_circle_Pts[ii], 2, Scalar(128,255,0),2);
+			circle(imageDraw, small_circle_Pts[ii], smallRad, Scalar(255,0,0), 2);
 		}
 		//ROS_ERROR("Here2");
 		for(int ii = 0; ii < boxMidPoints.size(); ii++){
@@ -879,15 +880,15 @@ public:
 		putText(imageDraw, angle_Str, Point(10, imageDraw.rows*.98), FONT_HERSHEY_SCRIPT_SIMPLEX, 1.0, Scalar(0,0,255), 2);
 
 		if (showImg){
-			//imshow(WINDOW4,imageDraw);
-			//waitKey(3);
+			//imshow(WINDOW1,imageDraw);
+			//waitKey(5000);
 			publishImage(imageDraw);
 		}
 	}
 
 	void publishImage(Mat img)
 	{
-		image_transport::Publisher pub = it_.advertise("Processed_Pump_Image", 1);
+		//image_transport::Publisher pub = it_.advertise("Processed_Pump_Image", 1);
 		sensor_msgs::ImagePtr msg;
 
 		cv_bridge::CvImage out_msg;
@@ -897,11 +898,11 @@ public:
 
 		//imshow(WINDOW1, img);
 		//waitKey(3000);
-		/*
-		ros::Rate loop_rate(5);
-		while (nh_.ok()) {
-			pub.publish(out_msg.toImageMsg());
-			ros::spinOnce();
+
+		//ros::Rate loop_rate(5);
+		//while (nh_.ok()) {
+			image_pub_.publish(out_msg.toImageMsg());
+		/*	ros::spinOnce();
 			loop_rate.sleep();
 		}
 		*/
@@ -915,6 +916,7 @@ public:
 		cv_ptr = cv_bridge::toCvCopy(msg,"bgr8");
 
 		Mat img = cv_ptr->image;
+		//ROS_ERROR("%d, %d", img.rows, img.cols);
 
 		input_Img = resize_Mono_Img(img);
 
@@ -1000,10 +1002,12 @@ public:
 			Point imgSide = Point(binary_Img.cols, Pump_Intersection_Small.y);
 			//calculatedAngle = calc_VectorAngle(Pump_Intersection_Small, imgSide, zero_Side);
 			calculatedAngle = calc_VectorAngle(Pump_Intersection_Large, imgSide, zero_Side);
-			drawImageDetails(input_Img, Pump_Intersection_Large, Pump_Intersection_Small, pump_Small_Hole_Points, calculatedAngle, extracted_Pump_MidPoints, pump_LongAxis_Points, zero_Side, false);
+			drawImageDetails(input_Img, Pump_Intersection_Large, Pump_Intersection_Small, pump_Small_Hole_Points, calculatedAngle, extracted_Pump_MidPoints, pump_LongAxis_Points, zero_Side, true);
+			//ROS_ERROR("No Error!!!");
 			return true;
 		}else{
-			drawErrorImage(false);
+			drawErrorImage(true);
+			//ROS_ERROR("Error!!!");
 			return false;
 		}
 	}
@@ -1018,6 +1022,7 @@ public:
 		}else{
 			calculatedAngle = -1;
 			errorCode = "Error";
+			//ROS_ERROR("Error!!!");
 		}
 
 		main_response.pose.rotation = calculatedAngle;
