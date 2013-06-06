@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<launch>
+	<!-- launch-prefix="gdb -ex run -args" -->
+    <node pkg="industrial_object_recognition_pcl17" type="training_node" name="training" output="screen" >
+    	<param name="model_name" value="pump_housing.ply"/>
+      <param name="model_path" value="/home/cgomez/Desktop/sampled_parts/pump2"/>
+      <param name="ply_model_path" value="/home/cgomez/Desktop"/>
+
+      <rosparam>
+      pos_x: 0.5 <!--	the x coordinate of the camera location -->
+      pos_y: 0
+      pos_z: 2
+      view_x: 0 <!-- the x component of the view point of the camera -->
+      view_y: 0
+      view_z: 0
+      up_x: 0.5 <!-- 	the x component of the view up direction of the camera -->
+      up_y: 0
+      up_z: 0
+      radius_sphere: 1.0
+      resolution: 150
+      view_angle: 57
+      </rosparam>
+    </node>
+</launch>

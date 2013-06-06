@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<launch>
+	<!-- launch-prefix="gdb -ex run -args" -->
+  <node pkg="industrial_object_recognition_pcl17" type="data_processing_node" name="data_node" output="screen" >
+
+    <rosparam>
+      world_frame: "/ur5_stand"
+      file_path: "/home/cgomez/Desktop/sampled_parts/pump2"
+      filename: "file"
+      faro_input_file: "/home/cgomez/Desktop/pose_measurements_faro_2_clean.csv"
+      rec1_input_file: "/home/cgomez/Desktop/pose_measurements_rec1_2_clean.csv"
+      rec2_input_file: "/home/cgomez/Desktop/pose_measurements_rec2_2_clean.csv"
+      need_conversion_faro_base: false
+      output_file: "/home/cgomez/Desktop/err_2.csv"
+    </rosparam>
+  </node>
+    
+    
+</launch>
