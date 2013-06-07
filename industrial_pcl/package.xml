@@ -1,0 +1,21 @@
+<package>
+  <name>industrial_pcl</name>
+  <version>1.0.0</version>
+  <description> ROS-Industrial industrial_pcl metapackage contains perception/pcl code for supporting industrial systems</description>
+  <maintainer email="cgomez@swri.org">Christina Gomez</maintainer>
+  <author email="cgomez@swri.org">Christina Gomez (Southwest Research Institute)</author>
+  <license>BSD</license>  
+  <url>http://ros.org/wiki/industrial_pcl</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend stack="common" /> <!-- actionlib -->
+  <run_depend stack="common_msgs" /> <!-- actionlib_msgs, trajectory_msgs, sensor_msgs -->
+
+  <run_depend stack="ros" />
+  <run_depend stack="ros_comm" /> <!-- std_msgs, rospy, roscpp -->
+
+  <export>
+    <metapackage/>
+  </export>
+
+</package>
