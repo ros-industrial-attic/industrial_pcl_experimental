@@ -12,10 +12,10 @@
 #include <opencv2/opencv.hpp>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
-#include <cv_bridge/CvBridge.h>
+//#include <cv_bridge/CvBridge.h>
 #include <cv_bridge/cv_bridge.h>
 
-#include <mantis_perception/mantis_recognition.h>
+#include <industrial_object_recognition_pcl17/object_recognition.h>
 
 //typedef boost::shared_ptr<CvImage> CvImagePtr;
 
@@ -1012,8 +1012,8 @@ public:
 		}
 	}
 
-	bool service_CB(mantis_perception::mantis_recognition::Request &main_request,
-			mantis_perception::mantis_recognition::Response &main_response)
+	bool service_CB(industrial_object_recognition_pcl17::object_recognition::Request &main_request,
+			industrial_object_recognition_pcl17::object_recognition::Response &main_response)
 	{
 		sensor_msgs::ImageConstPtr acquired_Img = ros::topic::waitForMessage<sensor_msgs::Image>("prosilica/image_color", nh_);
 
