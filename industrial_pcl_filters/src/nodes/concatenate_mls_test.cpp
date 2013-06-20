@@ -20,7 +20,7 @@
  */
 
 #include "industrial_pcl_filters/concatenate_mls.h"
-#include "ros/ros.h"
+#include <ros/ros.h>
 
 #include <iostream>
 #include <pcl/io/pcd_io.h>
@@ -29,7 +29,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/common/transforms.h> 
-#include <tabletop_object_detector/TabletopSegmentation.h>
+//#include <tabletop_object_detector/TabletopSegmentation.h>
 
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "concatenate_average");
   ros::NodeHandle n;
   ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("ur5_arm/avg_filtered_cloud", 100);
-  ros::ServiceClient seg_srv_ = n.serviceClient<tabletop_object_detector::TabletopSegmentation>("ur5_arm/tabletop_segmentation", true);
+  //ros::ServiceClient seg_srv_ = n.serviceClient<tabletop_object_detector::TabletopSegmentation>("ur5_arm/tabletop_segmentation", true);
   ROS_INFO_STREAM("Initialized concatenating and MLS averaging node");
 
   // Declare variables that can be modified by launch file or command line.
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 
       pcl::PointCloud<pcl::PointXYZRGB> transformed_scene;
       Eigen::Affine3d tfEigen_scene;
-      tf::TransformTFToEigen(sceneTf,tfEigen_scene);//clusterTf from ClusterFrame to WorldFrame
+      tf::transformTFToEigen(sceneTf,tfEigen_scene);//clusterTf from ClusterFrame to WorldFrame
       pcl::transformPointCloud(cloud,transformed_scene,Eigen::Affine3f(tfEigen_scene));
 
 
