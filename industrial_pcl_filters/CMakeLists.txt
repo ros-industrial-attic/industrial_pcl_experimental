@@ -1,45 +1,28 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION VERSION 2.8.3)
+project(industrial_pcl_filters)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
-
-rosbuild_init()
-
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
-
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
-
-#rosbuild_add_library(${PROJECT_NAME} src/concatenate_mls.cpp)
-
-rosbuild_add_library(${PROJECT_NAME} src/concatenate_mls.cpp
-	src/concatenate_mls_nodelet.cpp)
-#target_link_libraries(industrial_nodelet ${PROJECT_NAME})
-
-rosbuild_add_executable(concatenate_average src/nodes/concatenate_mls_test.cpp)
-target_link_libraries(concatenate_average ${PROJECT_NAME})
+find_package(catkin REQUIRED COMPONENTS roscpp dynamic_reconfigure std_msgs pcl pcl_ros nodelet tf tf_conversions sensor_msgs)
+find_package(PCL)
 
 # Enable dynamic_reconfigure
-rosbuild_find_ros_package (dynamic_reconfigure)
-include (${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
-gencfg ()
+generate_dynamic_reconfigure_options(cfg/ConcatenateMLS.cfg)
+#include_directories(include "/opt/ros/groovy/include")
+include_directories(include cfg/cpp)
+include_directories(SYSTEM ${PCL_INCLUDE_DIRS})
 
+add_library(industrial_pcl_filters src/concatenate_mls.cpp
+	src/concatenate_mls_nodelet.cpp)
+
+#add_executable(concatenate_average src/nodes/concatenate_mls_test.cpp)
+
+#add_dependencies(concatenate_average ${industrial_pcl_filters_EXPORTED_TARGETS})
+add_dependencies(industrial_pcl_filters ${industrial_pcl_filters_EXPORTED_TARGETS})
+
+target_link_libraries(industrial_pcl_filters ${catkin_LIBRARIES})
+#target_link_libraries(concatenate_average industrial_pcl_filters)
+#target_link_libraries(concatenate_average )
+
+catkin_package(INCLUDE_DIRS include
+  CATKIN_DEPENDS roscpp dynamic_reconfigure std_msgs pcl pcl_ros nodelet tf tf_conversions sensor_msgs)
+
+install(FILES nodelet_plugins.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
