@@ -177,7 +177,8 @@ class ConcatenateMLS : public pcl::Filter<PointT>
     /**
      * \brief The output normals from MLS averaging
      */
-    NormalCloudOutPtr normals_;
+    NormalCloudOutPtr normals_ptr_;
+    NormalCloudOut normals_;
     /**
      * \brief The search radius for MLS
      */
@@ -399,7 +400,8 @@ class ConcatenateMLS : public pcl::Filter<PointT>
     /**
      * \brief The point cloud that will hold the estimated normals from MLS averaging
      */
-    NormalCloudOutPtr normals_;
+    NormalCloudOutPtr normals_ptr_;
+    NormalCloudOut normals_;
     /**
      * \brief The search radius for MLS
      */

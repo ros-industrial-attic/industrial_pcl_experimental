@@ -78,14 +78,15 @@ void industrial_pcl_filters::ConcatenateMLS<PointT>::applyFilter(PointCloud &out
   ROS_INFO_STREAM("cloud after concat has "<<temp_concat_cloud_->size() <<" points");
 
   cloud_=temp_concat_cloud_;
-  mls_.setOutputNormals(normals_);
+  //mls_.setOutputNormals(normals_);
+//need to either remove mls or upgrade to pcl1.6 with groovy
   mls_.setInputCloud(cloud_);
   mls_.setPolynomialOrder(3);
   mls_.setPolynomialFit (true);
   mls_.setSearchMethod (tree_);
   mls_.setSearchRadius (search_radius_);
 
-  mls_.reconstruct(output);
+  mls_.process(normals_);
 
   output=*cloud_;
   ROS_INFO_STREAM("cloud after MLS has "<<output.size() <<" points");
@@ -138,17 +139,18 @@ void industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::applyFilt
 */
   ROS_INFO_STREAM("cloud after concat has "<<concat_cloud_->size() <<" points");
 
-  mls_.setOutputNormals(normals_);
+  //mls_.setOutputNormals(normals_);
+//need to either remove mls or upgrade to pcl1.6 with groovy
   mls_.setInputCloud(concat_cloud_);
   mls_.setPolynomialFit (true);
   mls_.setSearchMethod (tree_);
   mls_.setSearchRadius (search_radius_);
 
-  mls_.reconstruct(output_pc_);
-  ROS_INFO_STREAM("cloud after MLS has "<<output_pc_.size() <<" points");
+  mls_.process(normals_);
+  ROS_INFO_STREAM("cloud after MLS has "<<normals_.size() <<" points");
 
   //pcl::toROSMsg(*concat_cloud_, output);
-  pcl::toROSMsg(output_pc_, output);
+  pcl::toROSMsg(normals_, output);
   output.header.frame_id="/camera_rgb_optical_frame";
   output.header.stamp=ros::Time::now();
   ROS_INFO_STREAM("Filtered cloud converted");
@@ -172,6 +174,7 @@ industrial_pcl_filters::ConcatenateMLS<sensor_msgs::PointCloud2>::~ConcatenateML
   {
     //input_clouds_.clear();
   }
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 //Partial list of point types
 //template class industrial_pcl_filters::ConcatenateMLS<pcl::PointXYZ>;
