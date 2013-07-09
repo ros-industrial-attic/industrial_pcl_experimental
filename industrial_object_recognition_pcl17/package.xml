@@ -1,19 +1,41 @@
 <package>
-  <description brief="industrial_object_recognition_pcl17">
+  <name>industrial_object_recognition_pcl17</name>
+  <version>1.0.0</version>
+  <description>
 
      industrial_object_recognition_pcl17
 
   </description>
+  <maintainer email="cgomez@swri.org">Christina Gomez (Southwest Research Institute)</maintainer>
   <author>Christina Gomez</author>
   <license>BSD</license>
-  <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/industrial_object_recognition_pcl17</url>
-  <depend package="roscpp"/>
-  <depend package="pcl17"/>
-  <depend package="pcl17_ros"/>
-  <depend package="industrial_utils"/>
-  <depend package="industrial_pcl_filters"/>
-  <depend package="mantis_perception"/>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>std_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>pcl</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>industrial_utils</build_depend>
+  <build_depend>message_runtime</build_depend>
+  <build_depend>genmsg</build_depend>
+ <!--  <build_depend>industrial_pcl_filters</build_depend>-->
+
+  <run_depend>std_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>tf_conversions</run_depend>
+  <run_depend>pcl</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>industrial_utils</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>genmsg</run_depend>
+ <!--  <run_depend>industrial_pcl_filters</run_depend>-->
 </package>
 
 
