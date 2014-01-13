@@ -72,7 +72,7 @@ typedef pcl17::ReferenceFrame RFType;
 typedef pcl17::SHOT352 Descriptor1Type;
 typedef pcl17::VFHSignature308 Descriptor2Type;
 
-const std::string TABLETOP_SEGMENTATION = "ur5_arm/tabletop_segmentation";
+//const std::string TABLETOP_SEGMENTATION = "ur5_arm/tabletop_segmentation";
 std::ofstream STATFILE_("/home/cgomez/ros/fuerte/swri-ros-pkg_trunk_recognition_testing/mantis/mantis_perception/data/meshes/demo_parts/pump1.csv");
 
 // Internal classes for organizing data
@@ -117,7 +117,7 @@ public:
   //Publishers for intermediate steps
   ros::Publisher object_pub_, model_pub_, object_kp_pub_, model_kp_pub_, pose_pub_;
 
-  ros::ServiceClient tabletop_seg_client_;
+  //ros::ServiceClient tabletop_seg_client_;
 
   // Recognition
   std::vector<Recognizer> rec_list_;

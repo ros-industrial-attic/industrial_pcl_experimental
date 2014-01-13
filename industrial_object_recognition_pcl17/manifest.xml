@@ -12,8 +12,8 @@
   <depend package="pcl17"/>
   <depend package="pcl17_ros"/>
   <depend package="industrial_utils"/>
-  <depend package="industrial_pcl_filters"/>
-  <depend package="mantis_perception"/>
+<!--  <depend package="industrial_pcl_filters"/>
+  <depend package="mantis_perception"/> -->
 </package>
 
 

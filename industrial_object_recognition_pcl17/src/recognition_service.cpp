@@ -45,7 +45,7 @@
 #include <pcl17/console/parse.h>
 
 #include <ros/ros.h>
-#include <tabletop_object_detector/TabletopSegmentation.h>
+//#include <tabletop_object_detector/TabletopSegmentation.h>
 #include <mantis_perception/mantis_recognition.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud_conversion.h>
@@ -77,7 +77,7 @@ typedef pcl17::ReferenceFrame RFType;
 typedef pcl17::SHOT352 Descriptor1Type;
 typedef pcl17::VFHSignature308 Descriptor2Type;
 
-const std::string TABLETOP_SEGMENTATION = "ur5_arm/tabletop_segmentation";
+//const std::string TABLETOP_SEGMENTATION = "ur5_arm/tabletop_segmentation";
 std::ofstream STATFILE_("/home/jnicho/Desktop/pose_measurements.csv", ios::out | ios::app);
 //STATFILE_.open("/home/jnicho/Desktop/pose_measurements.csv", ios::out | ios::app);
 
@@ -123,7 +123,7 @@ public:
   ros::Publisher object_pub_, model_pub_, object_kp_pub_, model_kp_pub_, pose_pub_, grip_pose_pub_;
   std::string world_frame_;
 
-  ros::ServiceClient tabletop_seg_client_;
+  //ros::ServiceClient tabletop_seg_client_;
   ros::ServiceServer recognition_server_;
 
   // Recognition
