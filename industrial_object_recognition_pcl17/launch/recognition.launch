@@ -13,7 +13,7 @@
     	<param name="cg_thresh" value="10" />
     	<param name="descr_nn_thresh" value="0.3" /> -->
     <rosparam>
-      topic: "ur5_arm_kinect/depth_registered/pointsavg_filtered_cloud"<!--avg_filtered_cloud-->
+      topic: "ur5_arm_kinect/depth_registered/points"<!--avg_filtered_cloud-->
       model_list: ["pump_model.ply"] <!-- CHANGED - used to be for pcd input, now for ply input, "pvc_elbow_thin.pcd"  mug_4kp.pcd, elec_enclosure_sampled.pcd-->
       x_filter_min: -0.3
       x_filter_max: 0.3
