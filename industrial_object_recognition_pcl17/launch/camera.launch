@@ -2,10 +2,10 @@
 <launch>
 <!-- <remap from="/camera/depth_registered/points"
 		to="/ur5_arm_kinect/depth_registered/points"/> -->
-  <arg name="arm_prefix" default=""/><!--ur5_arm_-->
-  <arg name="camera_name" default="camera"/> <!--ur5_arm_kinect-->
+  <arg name="arm_prefix" default="ur5_arm_"/><!---->
+  <arg name="camera_name" default="ur5_arm_kinect"/> <!--camera-->
   <include file="$(find openni_launch)/launch/openni.launch">
-     <arg name="publish_tf" default="false" />
+     <arg name="publish_tf" default="true" />
     <arg name="camera" default="$(arg camera_name)" />
     <arg name="rgb_frame_id" default="/$(arg arm_prefix)kinect_rgb_optical_frame"/>    
     <arg name="depth_frame_id" default="/$(arg arm_prefix)kinect_ir_optical_frame"/> 
